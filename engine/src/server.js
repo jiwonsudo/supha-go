@@ -1,0 +1,93 @@
+'use strict';
+// JSON-lines worker: one request per line on stdin, one response per line on stdout.
+// Python drives several of these processes in parallel (see python/suphago/bridge.py).
+const readline = require('readline');
+const { SuikaGame, RADIUS, MERGE_SCORE, WIDTH, HEIGHT, MARGIN_X, DROP_Y } = require('./suika');
+
+const games = new Map();
+let nextHandle = 1;
+
+// Top of the pile, counting only fruits that have come to rest (a fruit still falling
+// from the previous drop would otherwise look like the highest point).
+const topY = (g) => g.fruits.reduce((m, f) => (f.body.speed < 1 ? Math.min(m, f.body.position.y - RADIUS[f.type]) : m), HEIGHT);
+
+function get(h) {
+  const g = games.get(h);
+  if (!g) throw new Error(`unknown game ${h}`);
+  return g;
+}
+
+// Branch from game g, drop at each x, run `frames` frames after the drop, and report
+// what happened. Used by search agents; g itself is not changed.
+function evaluate(g, xs, frames, secondXs) {
+  const base = { score: g.score, n: g.fruits.length, top: topY(g) };
+  return xs.map((x, i) => {
+    const c = g.clone();
+    const type = c.current;
+    c.drop(x);
+    const dropped = c.fruits[c.fruits.length - 1];
+    for (let k = 0; k < frames && !c.isOver; k++) c.stepFrame();
+    let touchNext = 0;
+    if (dropped.alive && type < 10) {
+      for (const f of c.fruits) {
+        if (f.type !== type + 1) continue;
+        const d = Math.hypot(f.body.position.x - dropped.body.position.x, f.body.position.y - dropped.body.position.y);
+        if (d < RADIUS[f.type] + RADIUS[type] + 1) touchNext++;
+      }
+    }
+    const first = {
+      gain: c.score - base.score,
+      removed: base.n + 1 - c.fruits.length,
+      topBefore: base.top,
+      topAfter: topY(c),
+      droppedAlive: dropped.alive,
+      touchNext,
+      isOver: c.isOver,
+    };
+    if (!secondXs || c.isOver) return first;
+    // second ply with the known next fruit
+    while (!c.canDrop && !c.isOver) c.stepFrame();
+    const s2 = c.score, n2 = c.fruits.length;
+    if (!c.isOver) {
+      c.drop(secondXs[i]);
+      for (let k = 0; k < frames && !c.isOver; k++) c.stepFrame();
+    }
+    first.second = { gain: c.score - s2, removed: n2 + 1 - c.fruits.length, topAfter: topY(c), isOver: c.isOver };
+    return first;
+  });
+}
+
+const handlers = {
+  info: () => ({ radius: RADIUS, mergeScore: MERGE_SCORE, width: WIDTH, height: HEIGHT, marginX: MARGIN_X, dropY: DROP_Y }),
+  new: ({ seed = 0, hz = 60 }) => {
+    const h = nextHandle++;
+    games.set(h, new SuikaGame({ seed, displayHz: hz }));
+    return { id: h, state: games.get(h).state() };
+  },
+  state: ({ id }) => get(id).state(),
+  turn: ({ id, x, extra = 0 }) => {
+    const g = get(id);
+    const gain = g.turn(x, extra);
+    return { gain, state: g.state() };
+  },
+  clone: ({ id }) => {
+    const h = nextHandle++;
+    games.set(h, get(id).clone());
+    return { id: h };
+  },
+  free: ({ id }) => ({ ok: games.delete(id) }),
+  evaluate: ({ id, xs, frames = 120, secondXs = null }) => evaluate(get(id), xs, frames, secondXs),
+};
+
+const rl = readline.createInterface({ input: process.stdin });
+rl.on('line', (line) => {
+  let req;
+  try {
+    req = JSON.parse(line);
+    const fn = handlers[req.cmd];
+    if (!fn) throw new Error(`unknown cmd ${req.cmd}`);
+    process.stdout.write(JSON.stringify({ ok: true, result: fn(req) }) + '\n');
+  } catch (e) {
+    process.stdout.write(JSON.stringify({ ok: false, error: String(e && e.message) }) + '\n');
+  }
+});
