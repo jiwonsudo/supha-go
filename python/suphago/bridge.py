@@ -104,5 +104,13 @@ class Game:
             kw["secondXs"] = [float(x) for x in second_xs]
         return self.engine.call("evaluate", **kw)
 
+    def expand(self, xs):
+        """For each x: drop there and run to the next decision point.
+        Returns dicts with gain, isOver and state (State)."""
+        out = self.engine.call("expand", id=self.id, xs=[float(x) for x in xs])
+        for r in out:
+            r["state"] = State.from_json(r["state"])
+        return out
+
     def free(self):
         self.engine.call("free", id=self.id)

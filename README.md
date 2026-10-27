@@ -15,6 +15,9 @@ python/suphago/
   bench.py       병렬 벤치마크 (중앙값, 25/75%)
   encode.py      판 상태 → 신경망 입력 (13채널 89x68 격자 + 현재/다음 과일)
   collect.py     학습용 기보 수집 (게임별 상태, 행동, 점수)
+  model.py       가치망 (CNN, 판 → 남은 점수 예측)
+  train_value.py 가치망 학습
+  value_agent.py 가치망으로 후보를 채점하는 탐색 에이전트
 results/         벤치마크 결과
 ```
 
@@ -33,6 +36,16 @@ python3 -m suphago.bench --agent mc --mode combined --plies 2 --games 30 --worke
 ```bash
 python3 -m suphago.collect --agent mc --games 200 --workers 10 --out ../data/mc1
 ```
+
+가치망 학습과 평가:
+
+```bash
+pip install -r requirements.txt
+python3 -m suphago.train_value --data ../data/mc1 --epochs 15 --loader-workers 8 --out ../runs/value_mc1.pt
+python3 -m suphago.bench --agent value --model ../runs/value_mc1.pt --games 30 --workers 10 --out value_mc1.jsonl
+```
+
+가치망 에이전트는 후보마다 다음 낙하 시점까지 시뮬레이션한 뒤 `얻은 점수 + 가치망 예측`으로 고릅니다. 시뮬레이션 복사본은 원래 볼 수 없는 다다음 과일까지 이미 뽑아둔 상태라, 그 과일은 5종 모두 넣어 평균을 냅니다.
 
 기보의 행동 x는 전체 정밀도로 저장해서, 시드와 함께 게임을 그대로 재현할 수 있습니다.
 

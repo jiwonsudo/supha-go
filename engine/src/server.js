@@ -57,7 +57,20 @@ function evaluate(g, xs, frames, secondXs) {
   });
 }
 
+// Branch from game g, drop at each x and run until the next drop is allowed (the
+// point where the agent decides again). Returns the score gained and that state.
+function expand(g, xs) {
+  return xs.map((x) => {
+    const c = g.clone();
+    const before = c.score;
+    c.drop(x);
+    while (!c.canDrop && !c.isOver) c.stepFrame();
+    return { gain: c.score - before, isOver: c.isOver, state: c.state() };
+  });
+}
+
 const handlers = {
+  expand: ({ id, xs }) => expand(get(id), xs),
   info: () => ({ radius: RADIUS, mergeScore: MERGE_SCORE, width: WIDTH, height: HEIGHT, marginX: MARGIN_X, dropY: DROP_Y }),
   new: ({ seed = 0, hz = 60 }) => {
     const h = nextHandle++;
