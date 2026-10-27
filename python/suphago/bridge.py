@@ -45,7 +45,7 @@ class Engine:
 
     def new_game(self, seed: int = 0, hz: int = 60) -> "Game":
         r = self.call("new", seed=seed, hz=hz)
-        return Game(self, r["id"], State.from_json(r["state"]))
+        return Game(self, r["id"], r["state"])
 
     def close(self):
         if self.proc.poll() is None:
@@ -84,14 +84,18 @@ class State:
 
 
 class Game:
-    def __init__(self, engine: Engine, gid: int, state: State):
+    def __init__(self, engine: Engine, gid: int, raw_state: dict):
         self.engine = engine
         self.id = gid
-        self.state = state
+        self._set(raw_state)
+
+    def _set(self, raw_state: dict):
+        self.raw = raw_state          # JSON form, as the engine sent it (used for saving games)
+        self.state = State.from_json(raw_state)
 
     def turn(self, x: float, extra: int = 0) -> int:
         r = self.engine.call("turn", id=self.id, x=float(x), extra=extra)
-        self.state = State.from_json(r["state"])
+        self._set(r["state"])
         return r["gain"]
 
     def evaluate(self, xs, frames: int = 120, second_xs=None):

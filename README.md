@@ -13,6 +13,9 @@ python/suphago/
   bridge.py      Node 워커와 통신
   agents.py      랜덤, 타입매칭, 몬테카를로 베이스라인
   bench.py       병렬 벤치마크 (중앙값, 25/75%)
+  encode.py      판 상태 → 신경망 입력 (13채널 89x68 격자 + 현재/다음 과일)
+  collect.py     학습용 기보 수집 (게임별 상태, 행동, 점수)
+results/         벤치마크 결과
 ```
 
 ## 실행
@@ -24,6 +27,14 @@ python3 -m suphago.bench --agent random --games 30 --workers 8
 python3 -m suphago.bench --agent typematch --games 30 --workers 8
 python3 -m suphago.bench --agent mc --mode combined --plies 2 --games 30 --workers 10 --out mc.jsonl
 ```
+
+기보 수집 (가치망 학습용):
+
+```bash
+python3 -m suphago.collect --agent mc --games 200 --workers 10 --out ../data/mc1
+```
+
+기보의 행동 x는 전체 정밀도로 저장해서, 시드와 함께 게임을 그대로 재현할 수 있습니다.
 
 워커 하나가 Node 프로세스 하나라서 `--workers`는 CPU 코어 수에 맞추면 됩니다.
 
