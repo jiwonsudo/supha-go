@@ -28,9 +28,9 @@ RADIUS = [r * 0.75 for r in [24.5, 31.5, 44, 48, 61, 78, 91, 111.5, 125.5, 154.5
 
 
 def load_samples(paths: list[str]):
-    games = []
+    games, seen = [], set()
     for p in paths:
-        games.extend(load_games(p))
+        games.extend(load_games(p, seen))
     return games
 
 

@@ -40,14 +40,33 @@ def record_game(engine: Engine, agent, seed: int, hz: int, max_turns: int) -> di
     return {"seed": seed, "agent": agent.name, "hz": hz, "score": g.state.score, "turns": len(steps), "steps": steps}
 
 
-def load_games(path: str | Path):
-    """Yield games from every *.jsonl.gz under path (or a single file)."""
+def load_games(path: str | Path, seen: set | None = None):
+    """Yield games from every *.jsonl.gz under path (or a single file).
+
+    The same (agent, seed, hz) is yielded once, so data collected twice (for example on
+    two machines with overlapping seeds) is not counted twice. Pass one `seen` set across
+    several calls to dedupe across folders too. A truncated last line (from a run that was
+    stopped mid-write) is skipped.
+    """
     path = Path(path)
+    seen = set() if seen is None else seen
     files = sorted(path.glob("*.jsonl.gz")) if path.is_dir() else [path]
     for fp in files:
-        with gzip.open(fp, "rt") as f:
-            for line in f:
-                yield json.loads(line)
+        try:
+            with gzip.open(fp, "rt") as f:
+                for line in f:
+                    try:
+                        g = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    key = (g.get("agent"), g.get("seed"), g.get("hz"))
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    yield g
+        except EOFError:
+            # gzip file cut off mid-stream: keep what was read
+            continue
 
 
 def main():
