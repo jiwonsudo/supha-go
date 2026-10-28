@@ -39,6 +39,7 @@ READ_JS = r"""
   const list = (typeof fruits !== 'undefined' ? fruits : []).filter(f => f.body && f.active);
   return {
     t: s.matter.world.engine.timing.timestamp,
+    held: !!window.__suphagoHeld,
     isOver: typeof isOver !== 'undefined' && !!isOver,
     score: typeof score !== 'undefined' ? score : 0,
     canDrop: !!preview,
@@ -67,8 +68,28 @@ SEED_INIT_JS = r"""
 })();
 """
 
-PAUSE_JS ="() => game.scene.scenes[0].matter.world.pause()"
-RESUME_JS = "() => game.scene.scenes[0].matter.world.resume()"
+# pause()/resume() return the whole physics world. Returning it from evaluate makes
+# Playwright serialize every body, which takes longer as the board fills up, and after
+# resume the board keeps running during that time. So return nothing.
+PAUSE_JS = "() => { game.scene.scenes[0].matter.world.pause(); return null; }"
+RESUME_JS = "() => { window.__suphagoHeld = false; game.scene.scenes[0].matter.world.resume(); return null; }"
+
+# Pause physics inside the page on the first frame the next fruit becomes droppable,
+# instead of waiting for Python to notice by polling. This keeps the time between
+# drops the same as the engine assumes (600 ms of physics).
+HOLD_HOOK_JS = r"""
+() => {
+  if (window.__suphagoHook) return null;
+  window.__suphagoHook = true; window.__suphagoHeld = false;
+  const s = game.scene.scenes[0];
+  s.events.on('postupdate', () => {
+    if (window.__suphagoHeld) return;
+    const p = s.children.list.find(o => o.texture && /^fruit\d+$/.test(o.texture.key) && !o.body && o.active && o.y === 80);
+    if (p) { s.matter.world.pause(); window.__suphagoHeld = true; }
+  });
+  return null;
+}
+"""
 
 FPS_JS = r"""
 () => new Promise(res => { let n = 0; const t0 = performance.now();
@@ -142,16 +163,17 @@ def main():
         print(f"에이전트: {agent.name}")
         moves = []
         t_start = time.time()
+        if not args.no_pause:
+            page.evaluate(HOLD_HOOK_JS)
+        held = (lambda s: s["isOver"] or (s["held"] and s["next"] is not None)) if not args.no_pause \
+            else (lambda s: s["isOver"] or (s["canDrop"] and s["next"] is not None))
         while True:
-            st = wait_for(page, lambda s: s["isOver"] or (s["canDrop"] and s["next"] is not None), timeout=60)
+            st = wait_for(page, held, timeout=60)
             if st is None:
                 print("페이지가 다음 수를 받을 준비가 되지 않았습니다 (60초). 종료합니다.")
                 break
             if st["isOver"]:
                 break
-            if not args.no_pause:
-                page.evaluate(PAUSE_JS)
-                st = page.evaluate(READ_JS)  # exact board the agent will drop into
             t0 = time.time()
             g = eng.load_game({"score": st["score"], "current": st["current"], "next": st["next"], "fruits": st["fruits"]}, hz=hz)
             x = agent.act(g)
@@ -166,7 +188,7 @@ def main():
             page.mouse.up()
             taken = wait_for(page, lambda s: s["isOver"] or not s["canDrop"], timeout=5)
             if not args.no_pause:
-                page.evaluate(RESUME_JS)
+                page.evaluate(RESUME_JS)  # also lets the hook pause again at the next drop
             if taken is None:
                 print("클릭이 반영되지 않았습니다. 브라우저 창 위의 팝업을 확인하세요.")
             moves.append({"state": st, "x": x, "think": round(think, 2)})
