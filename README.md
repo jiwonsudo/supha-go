@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/logo.png" alt="SuphaGo" width="560">
+</p>
+
 # SuphaGo
 
 수박게임을 스스로 학습하는 AI입니다. 이름은 Suika(수박) + AlphaGo에서 왔습니다.
