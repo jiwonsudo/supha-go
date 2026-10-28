@@ -28,15 +28,18 @@ cmd_start() {
   gcloud services enable compute.googleapis.com --quiet
   local created="" model=()
   if [ "$SPOT" = "1" ]; then model=(--provisioning-model SPOT --instance-termination-action STOP); fi
-  for z in $ZONES; do
-    echo "서버 만드는 중: $MACHINE ($([ "$SPOT" = "1" ] && echo 스팟 || echo 일반)) / $z"
-    if gcloud compute instances create "$NAME" --zone "$z" --machine-type "$MACHINE" \
-        ${model[@]+"${model[@]}"} \
-        --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud \
-        --boot-disk-size 30GB --boot-disk-type pd-balanced --quiet; then
-      echo "$z" > "$STATE"; created=1; break
-    fi
-    echo "  $z 에 자리가 없거나 실패했습니다. 다음 존을 시도합니다."
+  # SUPHAGO_MACHINE may list several machine types; each is tried in every zone.
+  for m in $MACHINE; do
+    for z in $ZONES; do
+      echo "서버 만드는 중: $m ($([ "$SPOT" = "1" ] && echo 스팟 || echo 일반)) / $z"
+      if gcloud compute instances create "$NAME" --zone "$z" --machine-type "$m" \
+          ${model[@]+"${model[@]}"} \
+          --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud \
+          --boot-disk-size 30GB --boot-disk-type pd-balanced --quiet; then
+        echo "$z" > "$STATE"; created=1; break 2
+      fi
+      echo "  실패했습니다. 다음을 시도합니다."
+    done
   done
   [ -n "$created" ] || { echo "서버를 만들지 못했습니다."; exit 1; }
 
