@@ -55,6 +55,8 @@ def main():
     p.add_argument("--agent", default="mc", choices=["random", "typematch", "mc", "value"])
     p.add_argument("--model", default=None, help="value network checkpoint (value agent)")
     p.add_argument("--device", default="cpu")
+    p.add_argument("--risk", type=float, default=0.0)
+    p.add_argument("--blend", type=float, default=0.0)
     p.add_argument("--mode", default="combined", choices=["random", "steps", "combined"])
     p.add_argument("--plies", type=int, default=1)
     p.add_argument("--n", type=int, default=50)

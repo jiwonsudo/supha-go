@@ -49,6 +49,14 @@ python3 -m suphago.train_value --data ../data/mc1 --epochs 15 --loader-workers 8
 python3 -m suphago.bench --agent value --model ../runs/value_mc1.pt --games 30 --workers 10 --out value_mc1.jsonl
 ```
 
+학습 옵션:
+- `--horizon 30`: 정답을 "게임 끝까지 남은 점수" 대신 "앞으로 30수 동안 얻는 점수"로 바꿉니다. 먼 미래의 운에 덜 흔들려서 후보끼리의 차이를 배우기 쉽습니다.
+- `--over-head`: "15수 안에 게임이 끝나는가"를 함께 예측합니다(`--over-within`으로 수 조정).
+
+에이전트 옵션 (`bench`, `replay`, `live` 공통):
+- `--risk 1`: 게임오버 확률 1당 1000점을 뺍니다(`--over-head`로 학습한 모델에서만 의미 있음).
+- `--blend 10`: 몬테카를로 채점 공식 1점당 10점을 더합니다.
+
 가치망 에이전트는 후보마다 다음 낙하 시점까지 시뮬레이션한 뒤 `얻은 점수 + 가치망 예측`으로 고릅니다. 시뮬레이션 복사본은 원래 볼 수 없는 다다음 과일까지 이미 뽑아둔 상태라, 그 과일은 5종 모두 넣어 평균을 냅니다.
 
 리플레이 기록과 보기:

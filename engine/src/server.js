@@ -59,13 +59,28 @@ function evaluate(g, xs, frames, secondXs) {
 
 // Branch from game g, drop at each x and run until the next drop is allowed (the
 // point where the agent decides again). Returns the score gained and that state.
+// Also returns the same counts the Monte Carlo heuristic uses, so an agent can mix the two.
 function expand(g, xs) {
+  const n0 = g.fruits.length, top0 = topY(g);
   return xs.map((x) => {
     const c = g.clone();
     const before = c.score;
+    const type = c.current;
     c.drop(x);
+    const dropped = c.fruits[c.fruits.length - 1];
     while (!c.canDrop && !c.isOver) c.stepFrame();
-    return { gain: c.score - before, isOver: c.isOver, state: c.state() };
+    let touchNext = 0;
+    if (dropped.alive && type < 10) {
+      for (const f of c.fruits) {
+        if (f.type !== type + 1) continue;
+        const d = Math.hypot(f.body.position.x - dropped.body.position.x, f.body.position.y - dropped.body.position.y);
+        if (d < RADIUS[f.type] + RADIUS[type] + 1) touchNext++;
+      }
+    }
+    return {
+      gain: c.score - before, isOver: c.isOver, state: c.state(),
+      removed: n0 + 1 - c.fruits.length, topBefore: top0, topAfter: topY(c), touchNext,
+    };
   });
 }
 

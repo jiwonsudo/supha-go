@@ -41,8 +41,9 @@ class ValueNet(nn.Module):
     """89x68 board -> 45x34 -> 23x17 -> 12x9, then pooled and joined with the
     current/next fruit vector."""
 
-    def __init__(self, width: int = 48, blocks: int = 2):
+    def __init__(self, width: int = 48, blocks: int = 2, over_head: bool = False):
         super().__init__()
+        self.over_head = over_head
         w = width
         self.stem = nn.Sequential(nn.Conv2d(N_CHANNELS, w, 3, padding=1, bias=False), nn.BatchNorm2d(w), nn.ReLU())
         stages = []
@@ -55,14 +56,22 @@ class ValueNet(nn.Module):
         self.head = nn.Sequential(
             nn.Linear(c * 2 + N_EXTRA, 256), nn.ReLU(),
             nn.Linear(256, 128), nn.ReLU(),
-            nn.Linear(128, 1),
+            nn.Linear(128, 2 if over_head else 1),
         )
-        self.config = {"width": width, "blocks": blocks}
+        self.config = {"width": width, "blocks": blocks, "over_head": over_head}
 
-    def forward(self, board: torch.Tensor, extra: torch.Tensor) -> torch.Tensor:
+    def features(self, board: torch.Tensor) -> torch.Tensor:
+        """Board part only (the expensive convolutions)."""
         x = self.body(self.stem(board))
-        pooled = torch.cat([x.mean(dim=(2, 3)), x.amax(dim=(2, 3))], dim=1)
-        return self.head(torch.cat([pooled, extra], dim=1)).squeeze(1)
+        return torch.cat([x.mean(dim=(2, 3)), x.amax(dim=(2, 3))], dim=1)
+
+    def head_from(self, feats: torch.Tensor, extra: torch.Tensor):
+        out = self.head(torch.cat([feats, extra], dim=1))
+        return out[:, 0], (out[:, 1] if self.over_head else None)
+
+    def forward(self, board: torch.Tensor, extra: torch.Tensor):
+        """Returns (value, game-over logit). The logit is None for a model without that head."""
+        return self.head_from(self.features(board), extra)
 
 
 def pick_device() -> torch.device:

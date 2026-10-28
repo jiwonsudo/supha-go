@@ -124,6 +124,8 @@ def main():
     p.add_argument("--frames", type=int, default=120)
     p.add_argument("--model", default=None)
     p.add_argument("--device", default="cpu")
+    p.add_argument("--risk", type=float, default=0.0)
+    p.add_argument("--blend", type=float, default=0.0)
     p.add_argument("--hz", type=int, default=0, help="display refresh rate of the page (0 = measure)")
     p.add_argument("--no-pause", action="store_true", help="do not pause the page's physics while thinking")
     p.add_argument("--log", default=None, help="save each move (page state + chosen x) to this JSON file")

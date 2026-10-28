@@ -28,7 +28,8 @@ def make_agent(args, radius, seed):
         from .value_agent import ValueAgent  # needs torch
         if not args.model:
             raise SystemExit("--model is required for --agent value")
-        return ValueAgent(radius, args.model, n=args.n, mode=args.mode, device=args.device, seed=seed)
+        return ValueAgent(radius, args.model, n=args.n, mode=args.mode, device=args.device, seed=seed,
+                          risk=getattr(args, "risk", 0.0), blend=getattr(args, "blend", 0.0))
     raise SystemExit(f"unknown agent {args.agent}")
 
 
@@ -56,6 +57,8 @@ def main():
     p.add_argument("--agent", default="random", choices=["random", "typematch", "mc", "value"])
     p.add_argument("--model", default=None, help="value network checkpoint (value agent)")
     p.add_argument("--device", default="cpu", help="device for value network inference")
+    p.add_argument("--risk", type=float, default=0.0, help="value agent: penalty x1000 points per unit of game-over probability")
+    p.add_argument("--blend", type=float, default=0.0, help="value agent: points per unit of the Monte Carlo heuristic")
     p.add_argument("--mode", default="combined", choices=["random", "steps", "combined"])
     p.add_argument("--plies", type=int, default=1)
     p.add_argument("--n", type=int, default=50, help="candidates per move (mc)")

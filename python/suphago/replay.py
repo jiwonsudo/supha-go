@@ -27,6 +27,8 @@ def main():
     p.add_argument("--frames", type=int, default=120)
     p.add_argument("--model", default=None)
     p.add_argument("--device", default="cpu")
+    p.add_argument("--risk", type=float, default=0.0)
+    p.add_argument("--blend", type=float, default=0.0)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--hz", type=int, default=60)
     p.add_argument("--every", type=int, default=2, help="record every N physics frames")
