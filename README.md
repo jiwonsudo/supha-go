@@ -80,6 +80,17 @@ python3 -m suphago.live --agent mc --seed 0      # 엔진 시드 0과 같은 과
 
 페이지에서 읽은 판을 엔진에 옮겨 4초 동안 같이 굴려보면 과일 위치 차이는 최대 0.1px입니다(`engine/test/live_snapshot.json`). 다만 같은 시드로 과일 순서를 맞춰도 한 판 전체 점수는 엔진과 같게 나오지 않습니다. 브라우저와 Node의 `Math.sin`/`Math.cos`가 마지막 자리에서 달라서, 수십 수가 지나면 두 판의 배치가 갈라지기 때문입니다.
 
+클라우드에서 벤치마크·수집 (Google Cloud 스팟 VM):
+
+```bash
+bash cloud/run.sh start    # 서버 생성, 코드·모델 업로드, cloud/jobs.sh 실행 시작
+bash cloud/run.sh status   # 진행 확인
+bash cloud/run.sh fetch    # 결과 내려받기 (기보는 data/ 로 복사)
+bash cloud/run.sh delete   # 서버 삭제
+```
+
+작업이 끝나면 서버가 스스로 꺼집니다. 꺼진 서버도 디스크 요금은 나오니 결과를 받은 뒤 꼭 삭제합니다. 돌릴 작업은 `cloud/jobs.sh`에서 고칩니다.
+
 기보의 행동 x는 전체 정밀도로 저장해서, 시드와 함께 게임을 그대로 재현할 수 있습니다.
 
 워커 하나가 Node 프로세스 하나라서 `--workers`는 CPU 코어 수에 맞추면 됩니다.
