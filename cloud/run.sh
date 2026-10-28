@@ -31,7 +31,7 @@ cmd_start() {
   for z in $ZONES; do
     echo "서버 만드는 중: $MACHINE ($([ "$SPOT" = "1" ] && echo 스팟 || echo 일반)) / $z"
     if gcloud compute instances create "$NAME" --zone "$z" --machine-type "$MACHINE" \
-        "${model[@]}" \
+        ${model[@]+"${model[@]}"} \
         --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud \
         --boot-disk-size 30GB --boot-disk-type pd-balanced --quiet; then
       echo "$z" > "$STATE"; created=1; break
