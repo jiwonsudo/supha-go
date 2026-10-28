@@ -19,5 +19,12 @@
   "seed": 0,
   "score": 1822,
   "moves": 209
+ },
+ {
+  "file": "value_mc1_seed0.json",
+  "agent": "value-combined-50",
+  "seed": 0,
+  "score": 2897,
+  "moves": 314
  }
 ]
