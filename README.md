@@ -19,6 +19,7 @@ python/suphago/
   train_value.py 가치망 학습
   value_agent.py 가치망으로 후보를 채점하는 탐색 에이전트
   replay.py      한 판을 리플레이 파일로 기록
+  live.py        실제 playsuikagame.com에서 에이전트가 플레이
 viewer/          리플레이 뷰어 (index.html)
 replays/         샘플 리플레이
 results/         벤치마크 결과
@@ -58,6 +59,18 @@ cd .. && python3 -m http.server 8000   # 브라우저에서 http://localhost:800
 ```
 
 뷰어는 `replays/index.json`에 있는 판을 목록으로 보여주고, 다른 리플레이 파일은 끌어다 놓거나 "파일 열기"로 열 수 있습니다. 판 아래 막대는 그 수에서 에이전트가 따져본 후보 위치별 점수이고, 빨간 선이 실제로 고른 위치입니다. 위치는 엔진이 기록한 값을 그대로 재생합니다(브라우저에서 다시 시뮬레이션하면 계산 오차로 다른 게임이 됩니다).
+
+실제 사이트에서 플레이:
+
+```bash
+pip install playwright && python3 -m playwright install chromium
+python3 -m suphago.live --agent mc --plies 2 --log live_mc2.json
+python3 -m suphago.live --agent mc --seed 0      # 엔진 시드 0과 같은 과일 순서로
+```
+
+브라우저 창이 열리면 팝업을 직접 닫고 터미널에서 Enter를 누릅니다. 매 수마다 페이지가 다음 과일을 받을 수 있게 되면 물리를 잠깐 멈추고 모든 과일의 종류·위치·속도·회전을 읽어 엔진에 그대로 옮긴 뒤, 에이전트가 고른 x에 마우스를 클릭하고 물리를 다시 켭니다. `--no-pause`를 주면 멈추지 않고 실시간으로 둡니다. 게임이 끝나면 페이지가 점수를 공개 리더보드에 올립니다.
+
+페이지에서 읽은 판을 엔진에 옮겨 4초 동안 같이 굴려보면 과일 위치 차이는 최대 0.1px입니다(`engine/test/live_snapshot.json`). 다만 같은 시드로 과일 순서를 맞춰도 한 판 전체 점수는 엔진과 같게 나오지 않습니다. 브라우저와 Node의 `Math.sin`/`Math.cos`가 마지막 자리에서 달라서, 수십 수가 지나면 두 판의 배치가 갈라지기 때문입니다.
 
 기보의 행동 x는 전체 정밀도로 저장해서, 시드와 함께 게임을 그대로 재현할 수 있습니다.
 

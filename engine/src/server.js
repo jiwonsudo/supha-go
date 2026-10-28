@@ -94,6 +94,17 @@ function turnRecorded(g, x, every) {
 }
 
 const handlers = {
+  load: ({ state, seed = 0, hz = 60 }) => {
+    const h = nextHandle++;
+    games.set(h, SuikaGame.fromState(state, { seed, displayHz: hz }));
+    return { id: h, state: games.get(h).state() };
+  },
+  // advance a game by n frames without dropping (used to compare against a real page)
+  run: ({ id, frames }) => {
+    const g = get(id);
+    for (let i = 0; i < frames && !g.isOver; i++) g.stepFrame();
+    return g.state();
+  },
   expand: ({ id, xs }) => expand(get(id), xs),
   turnRecorded: ({ id, x, every = 2 }) => turnRecorded(get(id), x, every),
   info: () => ({ radius: RADIUS, mergeScore: MERGE_SCORE, width: WIDTH, height: HEIGHT, marginX: MARGIN_X, dropY: DROP_Y }),

@@ -47,6 +47,11 @@ class Engine:
         r = self.call("new", seed=seed, hz=hz)
         return Game(self, r["id"], r["state"])
 
+    def load_game(self, state: dict, seed: int = 0, hz: int = 60) -> "Game":
+        """Game rebuilt from an outside state dict (score, current, next, fruits)."""
+        r = self.call("load", state=state, seed=seed, hz=hz)
+        return Game(self, r["id"], r["state"])
+
     def close(self):
         if self.proc.poll() is None:
             self.proc.stdin.close()

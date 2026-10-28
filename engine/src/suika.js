@@ -206,6 +206,27 @@ class SuikaGame {
     return this.score - before;
   }
 
+  // Build a game from a state read off a real page: fruits as
+  // [type, x, y, vx, vy, angle, angularVelocity] (velocities per physics step, as
+  // Matter stores them), plus current/next fruit and score. Contact caches and body
+  // ids are not copied, so the first frames can differ slightly from the page.
+  static fromState(s, { seed = 0, displayHz = 60, canDrop = true } = {}) {
+    const g = new SuikaGame({ seed, displayHz });
+    for (const f of s.fruits) {
+      const [type, x, y, vx = 0, vy = 0, angle = 0, av = 0] = f;
+      const fr = g._addFruit(type, x, y);
+      Body.setAngle(fr.body, angle);
+      Body.setVelocity(fr.body, { x: vx, y: vy });
+      Body.setAngularVelocity(fr.body, av);
+    }
+    g.score = s.score || 0;
+    g.current = s.current;
+    g.next = s.next;
+    g.canDrop = canDrop;
+    g.isOver = false;
+    return g;
+  }
+
   state() {
     return {
       score: this.score,
