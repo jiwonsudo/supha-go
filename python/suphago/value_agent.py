@@ -87,3 +87,39 @@ class ValueAgent:
         # kept for the replay viewer; does not affect the choice
         self.last = {"xs": xs, "scores": [float(s) for s in scores], "unit": "points"}
         return self.rng.choice([x for x, s in zip(xs, scores) if s >= best - 1e-9])
+
+
+class MCValueAgent(ValueAgent):
+    """The Monte Carlo baseline with the value network as a helper, not a replacement.
+
+    Each candidate is simulated exactly as the baseline does (120 frames, same candidates,
+    same heuristic). The value network then scores the board at the end of that
+    look-ahead and the game-over head penalizes risky boards:
+
+        score = heuristic + alpha * V(points) / 100 - risk * 10 * P(game over soon)
+
+    With alpha = risk = 0 this is the baseline. alpha = 1 makes 100 predicted points worth
+    one heuristic point, so the network mostly breaks the many ties the heuristic leaves.
+    """
+
+    def __init__(self, radius, model_path, n=50, mode="combined", device="cpu", seed=0,
+                 alpha=1.0, risk=1.0, frames=120):
+        super().__init__(radius, model_path, n=n, mode=mode, device=device, seed=seed)
+        self.alpha, self.risk, self.frames = alpha, risk, frames
+        self.name = f"mcv-{mode}-{n}-a{alpha:g}-r{risk:g}"
+
+    def act(self, game: Game) -> float:
+        from .agents import heuristic
+        xs = self._cand.candidates(game)
+        results = game.evaluate(xs, frames=self.frames, with_state=True)
+        base = np.array([heuristic(r) for r in results], dtype=np.float32)
+        alive = [i for i, r in enumerate(results) if not r["isOver"] and "state" in r]
+        v = np.zeros(len(xs), dtype=np.float32)
+        p = np.zeros(len(xs), dtype=np.float32)
+        if alive and (self.alpha or self.risk):
+            vv, pp = self.score_states([results[i]["state"] for i in alive])
+            v[alive], p[alive] = vv, pp
+        scores = base + self.alpha * v * VALUE_SCALE / 100.0 - self.risk * 10.0 * p
+        best = scores.max()
+        self.last = {"xs": xs, "scores": [float(s) for s in scores], "unit": "heuristic"}
+        return self.rng.choice([x for x, s in zip(xs, scores) if s >= best - 1e-9])

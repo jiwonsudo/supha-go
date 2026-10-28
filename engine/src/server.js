@@ -19,7 +19,7 @@ function get(h) {
 
 // Branch from game g, drop at each x, run `frames` frames after the drop, and report
 // what happened. Used by search agents; g itself is not changed.
-function evaluate(g, xs, frames, secondXs) {
+function evaluate(g, xs, frames, secondXs, withState) {
   const base = { score: g.score, n: g.fruits.length, top: topY(g) };
   return xs.map((x, i) => {
     const c = g.clone();
@@ -44,6 +44,7 @@ function evaluate(g, xs, frames, secondXs) {
       touchNext,
       isOver: c.isOver,
     };
+    if (withState && !c.isOver) first.state = c.state();
     if (!secondXs || c.isOver) return first;
     // second ply with the known next fruit
     while (!c.canDrop && !c.isOver) c.stepFrame();
@@ -140,7 +141,7 @@ const handlers = {
     return { id: h };
   },
   free: ({ id }) => ({ ok: games.delete(id) }),
-  evaluate: ({ id, xs, frames = 120, secondXs = null }) => evaluate(get(id), xs, frames, secondXs),
+  evaluate: ({ id, xs, frames = 120, secondXs = null, withState = false }) => evaluate(get(id), xs, frames, secondXs, withState),
 };
 
 const rl = readline.createInterface({ input: process.stdin });

@@ -24,6 +24,12 @@ def make_agent(args, radius, seed):
         return TypeMatchAgent(radius, seed)
     if args.agent == "mc":
         return MonteCarloAgent(radius, n=args.n, mode=args.mode, plies=args.plies, frames=args.frames, seed=seed)
+    if args.agent == "mcv":
+        from .value_agent import MCValueAgent
+        if not args.model:
+            raise SystemExit("--model is required for --agent mcv")
+        return MCValueAgent(radius, args.model, n=args.n, mode=args.mode, device=args.device, seed=seed,
+                            alpha=getattr(args, "alpha", 1.0), risk=getattr(args, "risk", 0.0), frames=args.frames)
     if args.agent == "value":
         from .value_agent import ValueAgent  # needs torch
         if not args.model:
@@ -54,7 +60,8 @@ def quantile(xs, q):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--agent", default="random", choices=["random", "typematch", "mc", "value"])
+    p.add_argument("--agent", default="random", choices=["random", "typematch", "mc", "value", "mcv"])
+    p.add_argument("--alpha", type=float, default=1.0, help="mcv: heuristic points per 100 predicted points")
     p.add_argument("--model", default=None, help="value network checkpoint (value agent)")
     p.add_argument("--device", default="cpu", help="device for value network inference")
     p.add_argument("--risk", type=float, default=0.0, help="value agent: penalty x1000 points per unit of game-over probability")

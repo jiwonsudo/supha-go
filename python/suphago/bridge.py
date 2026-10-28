@@ -109,11 +109,18 @@ class Game:
         self._set(r["state"])
         return r["gain"], r["frames"]
 
-    def evaluate(self, xs, frames: int = 120, second_xs=None):
+    def evaluate(self, xs, frames: int = 120, second_xs=None, with_state: bool = False):
         kw = {"id": self.id, "xs": [float(x) for x in xs], "frames": frames}
         if second_xs is not None:
             kw["secondXs"] = [float(x) for x in second_xs]
-        return self.engine.call("evaluate", **kw)
+        if with_state:
+            kw["withState"] = True
+        out = self.engine.call("evaluate", **kw)
+        if with_state:
+            for r in out:
+                if "state" in r:
+                    r["state"] = State.from_json(r["state"])
+        return out
 
     def expand(self, xs):
         """For each x: drop there and run to the next decision point.
