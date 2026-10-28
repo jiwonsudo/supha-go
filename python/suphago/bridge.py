@@ -98,6 +98,12 @@ class Game:
         self._set(r["state"])
         return r["gain"]
 
+    def turn_recorded(self, x: float, every: int = 2):
+        """Like turn, but also returns body snapshots every `every` frames (for the viewer)."""
+        r = self.engine.call("turnRecorded", id=self.id, x=float(x), every=every)
+        self._set(r["state"])
+        return r["gain"], r["frames"]
+
     def evaluate(self, xs, frames: int = 120, second_xs=None):
         kw = {"id": self.id, "xs": [float(x) for x in xs], "frames": frames}
         if second_xs is not None:

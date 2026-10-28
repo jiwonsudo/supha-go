@@ -69,8 +69,33 @@ function expand(g, xs) {
   });
 }
 
+// Same as turn, but also returns body positions every `every` frames for the replay
+// viewer. Each snapshot is a flat int array: id, type, x*10, y*10, angle*100, ...
+// The dropped fruit is captured from its first frame.
+function turnRecorded(g, x, every) {
+  const before = g.score;
+  const snap = () => {
+    const a = [];
+    for (const f of g.fruits) {
+      const b = f.body;
+      a.push(b.id, f.type, Math.round(b.position.x * 10), Math.round(b.position.y * 10), Math.round(b.angle * 100));
+    }
+    return a;
+  };
+  if (!g.drop(x)) return { gain: 0, frames: [], state: g.state() };
+  const frames = [snap()];
+  let k = 0;
+  while (!g.canDrop && !g.isOver) {
+    g.stepFrame();
+    if (++k % every === 0) frames.push(snap());
+  }
+  if (k % every !== 0) frames.push(snap());
+  return { gain: g.score - before, frames, state: g.state() };
+}
+
 const handlers = {
   expand: ({ id, xs }) => expand(get(id), xs),
+  turnRecorded: ({ id, x, every = 2 }) => turnRecorded(get(id), x, every),
   info: () => ({ radius: RADIUS, mergeScore: MERGE_SCORE, width: WIDTH, height: HEIGHT, marginX: MARGIN_X, dropY: DROP_Y }),
   new: ({ seed = 0, hz = 60 }) => {
     const h = nextHandle++;

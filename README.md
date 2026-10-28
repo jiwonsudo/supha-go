@@ -18,6 +18,9 @@ python/suphago/
   model.py       가치망 (CNN, 판 → 남은 점수 예측)
   train_value.py 가치망 학습
   value_agent.py 가치망으로 후보를 채점하는 탐색 에이전트
+  replay.py      한 판을 리플레이 파일로 기록
+viewer/          리플레이 뷰어 (index.html)
+replays/         샘플 리플레이
 results/         벤치마크 결과
 ```
 
@@ -46,6 +49,15 @@ python3 -m suphago.bench --agent value --model ../runs/value_mc1.pt --games 30 -
 ```
 
 가치망 에이전트는 후보마다 다음 낙하 시점까지 시뮬레이션한 뒤 `얻은 점수 + 가치망 예측`으로 고릅니다. 시뮬레이션 복사본은 원래 볼 수 없는 다다음 과일까지 이미 뽑아둔 상태라, 그 과일은 5종 모두 넣어 평균을 냅니다.
+
+리플레이 기록과 보기:
+
+```bash
+python3 -m suphago.replay --agent mc --plies 2 --seed 0 --out ../replays/mc2_seed0.json
+cd .. && python3 -m http.server 8000   # 브라우저에서 http://localhost:8000/viewer/
+```
+
+뷰어는 `replays/index.json`에 있는 판을 목록으로 보여주고, 다른 리플레이 파일은 끌어다 놓거나 "파일 열기"로 열 수 있습니다. 판 아래 막대는 그 수에서 에이전트가 따져본 후보 위치별 점수이고, 빨간 선이 실제로 고른 위치입니다. 위치는 엔진이 기록한 값을 그대로 재생합니다(브라우저에서 다시 시뮬레이션하면 계산 오차로 다른 게임이 됩니다).
 
 기보의 행동 x는 전체 정밀도로 저장해서, 시드와 함께 게임을 그대로 재현할 수 있습니다.
 

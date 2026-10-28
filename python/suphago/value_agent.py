@@ -59,4 +59,6 @@ class ValueAgent:
         values[alive] = self.score_states([results[i]["state"] for i in alive])
         scores = np.array([r["gain"] / VALUE_SCALE for r in results], dtype=np.float32) + values
         best = scores.max()
+        # kept for the replay viewer; does not affect the choice
+        self.last = {"xs": xs, "scores": [float(s * VALUE_SCALE) for s in scores], "unit": "points"}
         return self.rng.choice([x for x, s in zip(xs, scores) if s >= best - 1e-9])

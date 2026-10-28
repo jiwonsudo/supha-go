@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SuphaGo 리플레이</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Fragment+Mono&family=Gowun+Dodum&display=swap">
+<style>
+/* Layout: board on the left with the decision strip directly under it (same x scale),
+   controls and move analysis on the right; stacks to one column on phones. */
+:root {
+  --bg: #f3f5f1;
+  --surface: #ffffff;
+  --ink: #1b241d;
+  --muted: #5d6b60;
+  --line: #d5ddd3;
+  --board: #fbf6e6;
+  --board-wall: #c9bf9e;
+  --accent: #2f7a3c;
+  --pick: #d7334a;
+  --danger: #c2410c;
+  --bar: #9fb5a2;
+  --font-ui: "Instrument Sans", "Gowun Dodum", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  --font-data: "Fragment Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121713; --surface: #1a211b; --ink: #e6ece5; --muted: #95a597; --line: #2c372e;
+    --board: #232a22; --board-wall: #4d5a4c; --accent: #6cc27a; --pick: #ff6b7f; --danger: #fb923c; --bar: #4f6b54;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121713; --surface: #1a211b; --ink: #e6ece5; --muted: #95a597; --line: #2c372e;
+  --board: #232a22; --board-wall: #4d5a4c; --accent: #6cc27a; --pick: #ff6b7f; --danger: #fb923c; --bar: #4f6b54;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 14px; line-height: 1.5;
+}
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 16px;
+}
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+h1 span { color: var(--accent); }
+.source { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+select, button, .file {
+  font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 6px 10px; cursor: pointer;
+}
+select { max-width: 100%; }
+button:hover, .file:hover, select:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, .file:focus-within, input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.file input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.main { display: grid; grid-template-columns: minmax(0, 560px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 880px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.stage { display: grid; gap: 8px; min-width: 0; }
+.board-box { position: relative; width: 100%; aspect-ratio: 654 / 724; max-width: 100%; }
+canvas { display: block; width: 100%; height: 100%; }
+#strip { height: 96px; }
+.strip-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.panel { display: grid; gap: 14px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px 16px; }
+.stat b { display: block; font-family: var(--font-data); font-size: 20px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+.transport { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.transport .sp { margin-left: auto; display: flex; gap: 4px; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.movebar { display: flex; justify-content: space-between; font-family: var(--font-data); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.fruits { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+.fruit { display: flex; align-items: center; gap: 8px; }
+.dot { width: 18px; height: 18px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.18); }
+.fruit small { color: var(--muted); display: block; font-size: 11px; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+td, th { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--line); font-family: var(--font-data); font-size: 12px; }
+th { font-family: var(--font-ui); font-weight: 600; color: var(--muted); }
+td:first-child, th:first-child { text-align: left; }
+tr.picked td { color: var(--pick); font-weight: 600; }
+.note { font-size: 12px; color: var(--muted); margin: 0; max-width: 65ch; }
+#scorechart { width: 100%; height: 110px; display: block; cursor: pointer; }
+.legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px 10px; }
+.legend .fruit { font-size: 12px; }
+.drop-hint { position: fixed; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 85%, transparent); font-size: 18px; font-weight: 600; z-index: 20; }
+.empty { padding: 24px; text-align: center; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span>SuphaGo</span> 리플레이</h1>
+    <div class="source">
+      <label for="replaySelect" class="eyebrow">게임</label>
+      <select id="replaySelect" aria-label="리플레이 선택"></select>
+      <label class="file" for="fileInput">파일 열기<input id="fileInput" type="file" accept=".json,application/json"></label>
+    </div>
+  </header>
+
+  <div class="main">
+    <section class="stage" aria-label="게임 화면">
+      <div class="board-box"><canvas id="board" aria-label="수박게임 판"></canvas></div>
+      <div class="strip-label"><span id="stripTitle">후보 위치별 점수</span><span id="stripUnit"></span></div>
+      <canvas id="strip" aria-label="후보 위치별 점수"></canvas>
+    </section>
+
+    <section class="panel">
+      <div class="card">
+        <div class="eyebrow" id="agentLine">불러오는 중</div>
+        <div class="stats">
+          <div class="stat"><b id="statScore">0</b><span>현재 점수</span></div>
+          <div class="stat"><b id="statFinal">0</b><span>최종 점수</span></div>
+          <div class="stat"><b id="statMove">0 / 0</b><span>수</span></div>
+          <div class="stat"><b id="statFruits">0</b><span>판 위 과일</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="transport">
+          <button id="btnPrev" type="button" title="이전 수 (←)">이전 수</button>
+          <button id="btnPlay" type="button" title="재생 / 일시정지 (Space)">재생</button>
+          <button id="btnNext" type="button" title="다음 수 (→)">다음 수</button>
+          <div class="sp" role="group" aria-label="재생 속도">
+            <button type="button" data-speed="1" aria-pressed="false">1×</button>
+            <button type="button" data-speed="4" aria-pressed="true">4×</button>
+            <button type="button" data-speed="16" aria-pressed="false">16×</button>
+          </div>
+        </div>
+        <input id="seek" type="range" min="0" max="0" value="0" step="1" aria-label="수 이동">
+        <div class="movebar"><span>1수</span><span id="seekLabel"></span><span id="seekMax"></span></div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">이번 수</div>
+        <div class="fruits">
+          <div class="fruit"><span class="dot" id="curDot"></span><div><span id="curName">-</span><small>떨어뜨린 과일</small></div></div>
+          <div class="fruit"><span class="dot" id="nextDot"></span><div><span id="nextName">-</span><small>다음 과일</small></div></div>
+          <div class="fruit"><div><span id="dropX" style="font-family:var(--font-data)">-</span><small>낙하 x</small></div></div>
+          <div class="fruit"><div><span id="gain" style="font-family:var(--font-data)">-</span><small>이번 수 득점</small></div></div>
+        </div>
+        <div id="candTableWrap" style="overflow-x:auto"></div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">점수 흐름</div>
+        <svg id="scorechart" role="img" aria-label="수별 누적 점수"></svg>
+        <p class="note">그래프를 누르면 그 수로 이동합니다. 키보드: Space 재생, ← → 수 이동.</p>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">과일 단계</div>
+        <div class="legend" id="legend"></div>
+        <p class="note">위치는 엔진이 기록한 값을 그대로 재생합니다. 브라우저에서 다시 시뮬레이션하면 계산 오차로 다른 게임이 되기 때문입니다.</p>
+      </div>
+    </section>
+  </div>
+</div>
+<div class="drop-hint" id="dropHint" hidden>리플레이 JSON 파일을 놓으세요</div>
+
+<script>
+(() => {
+  const NAMES = ["체리", "딸기", "포도", "데코폰", "감", "사과", "배", "복숭아", "파인애플", "멜론", "수박"];
+  const COLORS = ["#c8283c", "#ef5a6f", "#8a4fd0", "#f2a33a", "#ef7a1e", "#d6342c", "#e7d36a", "#f4a6a0", "#f0c93b", "#9bd26a", "#2f8f3a"];
+  const AGENT_LABEL = (name) => {
+    if (!name) return "";
+    if (name === "random") return "랜덤";
+    if (name === "typematch") return "타입매칭";
+    let m = name.match(/^mc-(\w+)-(\d)ply-(\d+)$/);
+    if (m) return `몬테카를로 ${m[2]}수 · 후보 ${m[3]}`;
+    m = name.match(/^value-(\w+)-(\d+)$/);
+    if (m) return `가치망 · 후보 ${m[2]}`;
+    return name;
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const board = $("board"), strip = $("strip");
+  const bctx = board.getContext("2d"), sctx = strip.getContext("2d");
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  let R = null;            // loaded replay
+  let timeline = [];       // [{m, k}]
+  let moveStart = [];      // timeline index where each move starts
+  let pos = 0;             // float index into timeline
+  let playing = false, speed = 4, lastT = 0;
+  let effects = [];        // merge rings
+  let lastIdx = -1;
+
+  // ---------- loading ----------
+  async function fetchJSON(paths) {
+    for (const p of paths) {
+      try { const r = await fetch(p); if (r.ok) return await r.json(); } catch (e) { /* try next */ }
+    }
+    return null;
+  }
+  const BASES = ["replays/", "../replays/"];
+  let base = BASES[0];
+
+  async function init() {
+    let index = null;
+    for (const b of BASES) { index = await fetchJSON([b + "index.json"]); if (index) { base = b; break; } }
+    const sel = $("replaySelect");
+    sel.innerHTML = "";
+    if (index && index.length) {
+      // strongest first
+      index.sort((a, b) => b.score - a.score);
+      for (const e of index) {
+        const o = document.createElement("option");
+        o.value = e.file;
+        o.textContent = `${AGENT_LABEL(e.agent)} · 시드 ${e.seed} · ${e.score}점`;
+        sel.appendChild(o);
+      }
+      sel.onchange = () => loadFile(sel.value);
+      await loadFile(index[0].file);
+    } else {
+      const o = document.createElement("option"); o.textContent = "파일을 열어 주세요"; sel.appendChild(o);
+      $("agentLine").textContent = "리플레이 없음: 파일 열기로 JSON을 불러오세요";
+      draw();
+    }
+  }
+
+  async function loadFile(file) {
+    $("agentLine").textContent = "불러오는 중";
+    const data = await fetchJSON([base + file]);
+    if (data) setReplay(data);
+    else $("agentLine").textContent = `${file}을(를) 불러오지 못했습니다`;
+  }
+
+  function setReplay(data) {
+    if (!data || !Array.isArray(data.moves)) { $("agentLine").textContent = "리플레이 형식이 아닙니다 (moves 없음)"; return; }
+    R = data;
+    timeline = []; moveStart = [];
+    R.moves.forEach((mv, m) => {
+      moveStart.push(timeline.length);
+      mv.frames.forEach((_, k) => timeline.push({ m, k }));
+    });
+    pos = 0; lastIdx = -1; effects = [];
+    $("seek").max = Math.max(R.moves.length - 1, 0);
+    $("seekMax").textContent = `${R.moves.length}수`;
+    $("statFinal").textContent = R.finalScore.toLocaleString();
+    $("agentLine").textContent = `${AGENT_LABEL(R.agent)} · 시드 ${R.seed} · ${R.hz}Hz`;
+    buildScoreChart();
+    setPlaying(true);
+    resize();
+  }
+
+  $("fileInput").addEventListener("change", (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => { try { setReplay(JSON.parse(rd.result)); } catch (err) { $("agentLine").textContent = "JSON을 읽지 못했습니다: " + err.message; } };
+    rd.readAsText(f);
+  });
+  let dragDepth = 0;
+  window.addEventListener("dragenter", (e) => { e.preventDefault(); dragDepth++; $("dropHint").hidden = false; });
+  window.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; $("dropHint").hidden = true; } });
+  window.addEventListener("dragover", (e) => e.preventDefault());
+  window.addEventListener("drop", (e) => {
+    e.preventDefault(); dragDepth = 0; $("dropHint").hidden = true;
+    const f = e.dataTransfer.files[0]; if (!f) return;
+    f.text().then((t) => { try { setReplay(JSON.parse(t)); } catch (err) { $("agentLine").textContent = "JSON을 읽지 못했습니다: " + err.message; } });
+  });
+
+  // ---------- geometry ----------
+  let scale = 1, dpr = 1;
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    const w = board.clientWidth, h = board.clientHeight;
+    board.width = Math.round(w * dpr); board.height = Math.round(h * dpr);
+    scale = w / 654;
+    strip.width = Math.round(strip.clientWidth * dpr); strip.height = Math.round(strip.clientHeight * dpr);
+    draw();
+  }
+  window.addEventListener("resize", resize);
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  mq.addEventListener && mq.addEventListener("change", () => draw());
+  new MutationObserver(() => draw()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  function snapshot(i) {
+    const t = timeline[i]; if (!t) return null;
+    return R.moves[t.m].frames[t.k];
+  }
+  function toMap(s) {
+    const m = new Map();
+    for (let j = 0; j < s.length; j += 5) m.set(s[j], [s[j + 1], s[j + 2] / 10, s[j + 3] / 10, s[j + 4] / 100]);
+    return m;
+  }
+
+  // ---------- drawing ----------
+  function drawFruit(ctx, type, x, y, a) {
+    const r = R.radius[type];
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = COLORS[type]; ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.stroke();
+    // highlight
+    ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.35, r * 0.28, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.28)"; ctx.fill();
+    // spin mark
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * r * 0.8, y + Math.sin(a) * r * 0.8);
+    ctx.strokeStyle = "rgba(0,0,0,0.3)"; ctx.lineWidth = Math.max(1.5, r * 0.06); ctx.stroke();
+    if (r > 30) {
+      ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.font = `600 ${Math.round(r * 0.32)}px ${css("--font-ui")}`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(NAMES[type], x, y + r * 0.42);
+    }
+  }
+
+  function draw() {
+    const ctx = bctx;
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+    ctx.clearRect(0, 0, 654, 724);
+    if (!R) { drawStrip(-1); return; }
+    const B = R.box;
+    // walls and floor
+    ctx.fillStyle = css("--board-wall"); ctx.fillRect(0, 0, 654, 724);
+    ctx.fillStyle = css("--board"); ctx.fillRect(B.left, 0, B.right - B.left, B.bottom);
+    // game over line
+    ctx.setLineDash([8, 6]); ctx.strokeStyle = css("--danger"); ctx.globalAlpha = 0.55; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(B.left, B.lineY); ctx.lineTo(B.right, B.lineY); ctx.stroke();
+    ctx.globalAlpha = 1; ctx.setLineDash([]);
+
+    const i = Math.max(0, Math.min(Math.floor(pos), timeline.length - 1));
+    const f = Math.max(0, pos - i);
+    const t = timeline[i];
+    const mv = R.moves[t.m];
+    // drop guide
+    ctx.setLineDash([4, 6]); ctx.strokeStyle = css("--pick"); ctx.globalAlpha = 0.5; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(mv.x, 0); ctx.lineTo(mv.x, B.bottom); ctx.stroke();
+    ctx.globalAlpha = 1; ctx.setLineDash([]);
+
+    const A = toMap(snapshot(i));
+    const nextS = i + 1 < timeline.length ? snapshot(i + 1) : null;
+    const Bm = nextS ? toMap(nextS) : null;
+    for (const [id, [type, x, y, a]] of A) {
+      let X = x, Y = y, An = a;
+      if (Bm && Bm.has(id)) { const q = Bm.get(id); X = x + (q[1] - x) * f; Y = y + (q[2] - y) * f; An = a + (q[3] - a) * f; }
+      drawFruit(ctx, type, X, Y, An);
+    }
+    // merge rings
+    const now = performance.now();
+    effects = effects.filter((e) => now - e.t < 380);
+    for (const e of effects) {
+      const k = (now - e.t) / 380;
+      ctx.beginPath(); ctx.arc(e.x, e.y, e.r * (1 + k * 0.6), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,255,255,${0.8 * (1 - k)})`; ctx.lineWidth = 4; ctx.stroke();
+    }
+    // when the game is over, say so on the last frame
+    if (i === timeline.length - 1) {
+      ctx.fillStyle = "rgba(0,0,0,0.45)"; ctx.fillRect(B.left, 300, B.right - B.left, 90);
+      ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = `700 34px ${css("--font-ui")}`; ctx.fillText(`게임 종료 · ${R.finalScore}점`, 327, 345);
+    }
+    updatePanel(t.m, i, A.size);
+    drawStrip(t.m);
+  }
+
+  function drawStrip(m) {
+    const ctx = sctx, w = strip.width / dpr, h = strip.height / dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const s = w / 654;
+    ctx.fillStyle = css("--surface"); ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = css("--line"); ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
+    if (!R || m < 0) return;
+    const mv = R.moves[m], c = mv.candidates;
+    const base = h - 14;
+    ctx.fillStyle = css("--muted"); ctx.font = `11px ${css("--font-data")}`; ctx.textBaseline = "alphabetic";
+    if (!c) {
+      ctx.textAlign = "center"; ctx.fillText("이 에이전트는 후보를 평가하지 않습니다", w / 2, h / 2 + 4);
+      $("stripUnit").textContent = "";
+    } else {
+      const valid = c.scores.filter((v) => v > -999);
+      const lo = valid.length ? Math.min(...valid) : 0, hi = valid.length ? Math.max(...valid) : 1;
+      const span = hi - lo || 1;
+      const bw = Math.max(2, 3 * s);
+      c.xs.forEach((x, j) => {
+        const v = c.scores[j], X = x * s;
+        if (v <= -999) {
+          ctx.strokeStyle = css("--danger"); ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(X - 3, base - 3); ctx.lineTo(X + 3, base + 3); ctx.moveTo(X + 3, base - 3); ctx.lineTo(X - 3, base + 3); ctx.stroke();
+          return;
+        }
+        const hh = 6 + ((v - lo) / span) * (base - 12);
+        ctx.fillStyle = css("--bar"); ctx.fillRect(X - bw / 2, base - hh, bw, hh);
+      });
+      $("stripUnit").textContent = c.unit === "points" ? `예상 점수 ${Math.round(lo)} ~ ${Math.round(hi)}` : `휴리스틱 ${lo} ~ ${hi}`;
+    }
+    // chosen x
+    const X = mv.x * s;
+    ctx.strokeStyle = css("--pick"); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(X, 4); ctx.lineTo(X, base); ctx.stroke();
+    // box edges
+    ctx.fillStyle = css("--muted"); ctx.textAlign = "left"; ctx.fillText(String(R.box.left), R.box.left * s + 2, h - 3);
+    ctx.textAlign = "right"; ctx.fillText(String(R.box.right), R.box.right * s - 2, h - 3);
+  }
+
+  function setDot(el, type) { el.style.background = type == null ? "transparent" : COLORS[type]; }
+
+  let shownMove = -1;
+  function updatePanel(m, i, n) {
+    const mv = R.moves[m];
+    const atEnd = i === timeline.length - 1 || (timeline[i + 1] && timeline[i + 1].m !== m && i === timeline.length - 1);
+    const lastOfMove = i + 1 >= timeline.length || timeline[i + 1].m !== m;
+    $("statScore").textContent = (mv.scoreBefore + (lastOfMove ? mv.gain : 0)).toLocaleString();
+    $("statMove").textContent = `${m + 1} / ${R.moves.length}`;
+    $("statFruits").textContent = n;
+    if (m === shownMove) return;
+    shownMove = m;
+    $("seek").value = m;
+    $("seekLabel").textContent = `${m + 1}수`;
+    setDot($("curDot"), mv.fruit); $("curName").textContent = NAMES[mv.fruit];
+    setDot($("nextDot"), mv.next); $("nextName").textContent = NAMES[mv.next];
+    $("dropX").textContent = mv.x.toFixed(1);
+    $("gain").textContent = mv.gain ? `+${mv.gain}` : "0";
+    const wrap = $("candTableWrap");
+    if (!mv.candidates) { wrap.innerHTML = `<p class="note">이 에이전트는 후보를 평가하지 않고 바로 고릅니다.</p>`; }
+    else {
+      const c = mv.candidates;
+      const rows = c.xs.map((x, j) => ({ x, v: c.scores[j] })).sort((a, b) => b.v - a.v).slice(0, 6);
+      const unit = c.unit === "points" ? "예상 점수" : "휴리스틱";
+      let html = `<table><thead><tr><th>순위</th><th>x</th><th>${unit}</th></tr></thead><tbody>`;
+      rows.forEach((r) => {
+        const picked = Math.abs(r.x - mv.x) < 0.06;
+        const k = c.scores.filter((v) => v > r.v).length;  // tied scores share a rank
+        const v = r.v <= -999 ? "게임오버" : (c.unit === "points" ? Math.round(r.v).toLocaleString() : r.v);
+        html += `<tr class="${picked ? "picked" : ""}"><td>${k + 1}${picked ? " · 선택" : ""}</td><td>${r.x.toFixed(1)}</td><td>${v}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+      wrap.innerHTML = html;
+    }
+    markScoreChart(m);
+  }
+
+  // ---------- score chart ----------
+  let chartScale = null;
+  function buildScoreChart() {
+    const svg = $("scorechart");
+    const W = svg.clientWidth || 400, H = svg.clientHeight || 110;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const pad = { l: 40, r: 8, t: 8, b: 18 };
+    const n = R.moves.length;
+    const ys = R.moves.map((m) => m.scoreBefore + m.gain);
+    const maxY = Math.max(1, ...ys);
+    const sx = (i) => pad.l + (i / Math.max(n - 1, 1)) * (W - pad.l - pad.r);
+    const sy = (v) => H - pad.b - (v / maxY) * (H - pad.t - pad.b);
+    chartScale = { sx, sy, ys, pad, W, H, n };
+    const pts = ys.map((v, i) => `${sx(i).toFixed(1)},${sy(v).toFixed(1)}`).join(" ");
+    const area = `${sx(0)},${sy(0)} ${pts} ${sx(n - 1)},${sy(0)}`;
+    const nice = Math.pow(10, Math.floor(Math.log10(maxY)));
+    const step = maxY / nice > 5 ? nice * 2 : nice;
+    let grid = "";
+    for (let v = 0; v <= maxY; v += step) {
+      grid += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--line)" stroke-width="1"/>`;
+      grid += `<text x="${pad.l - 6}" y="${sy(v) + 4}" text-anchor="end" font-size="10" font-family="var(--font-data)" fill="var(--muted)">${v}</text>`;
+    }
+    svg.innerHTML = `${grid}
+      <polygon points="${area}" fill="var(--accent)" fill-opacity="0.12"/>
+      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="${pad.l}" y="${H - 4}" font-size="10" font-family="var(--font-data)" fill="var(--muted)">1수</text>
+      <text x="${W - pad.r}" y="${H - 4}" text-anchor="end" font-size="10" font-family="var(--font-data)" fill="var(--muted)">${n}수</text>
+      <line id="chartMark" x1="0" x2="0" y1="${pad.t}" y2="${H - pad.b}" stroke="var(--pick)" stroke-width="1.5"/>
+      <circle id="chartDot" r="4" fill="var(--pick)"/>`;
+    svg.onclick = (e) => {
+      const rect = svg.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width * W;
+      const m = Math.round((x - pad.l) / (W - pad.l - pad.r) * (n - 1));
+      seekMove(Math.max(0, Math.min(n - 1, m)));
+    };
+    shownMove = -1;
+  }
+  function markScoreChart(m) {
+    if (!chartScale) return;
+    const { sx, sy, ys } = chartScale;
+    const mk = document.getElementById("chartMark"), dot = document.getElementById("chartDot");
+    if (!mk) return;
+    mk.setAttribute("x1", sx(m)); mk.setAttribute("x2", sx(m));
+    dot.setAttribute("cx", sx(m)); dot.setAttribute("cy", sy(ys[m]));
+  }
+  let chartTimer;
+  window.addEventListener("resize", () => { clearTimeout(chartTimer); chartTimer = setTimeout(() => R && buildScoreChart(), 150); });
+
+  // ---------- playback ----------
+  function setPlaying(p) {
+    playing = p && R && pos < timeline.length - 1;
+    $("btnPlay").textContent = playing ? "일시정지" : "재생";
+    lastT = performance.now();
+  }
+  function seekMove(m) {
+    if (!R) return;
+    pos = moveStart[Math.max(0, Math.min(R.moves.length - 1, m))];
+    lastIdx = Math.floor(pos); effects = [];
+    shownMove = -1; draw();
+  }
+  function curMove() { return R ? timeline[Math.min(Math.floor(pos), timeline.length - 1)].m : 0; }
+
+  $("btnPlay").onclick = () => { if (!R) return; if (pos >= timeline.length - 1) pos = 0; setPlaying(!playing); };
+  $("btnPrev").onclick = () => { setPlaying(false); seekMove(curMove() - 1); };
+  $("btnNext").onclick = () => { setPlaying(false); seekMove(curMove() + 1); };
+  $("seek").oninput = (e) => { setPlaying(false); seekMove(+e.target.value); };
+  document.querySelectorAll("[data-speed]").forEach((b) => b.onclick = () => {
+    speed = +b.dataset.speed;
+    document.querySelectorAll("[data-speed]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  });
+  window.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "SELECT" || e.target.tagName === "INPUT" && e.target.type !== "range") return;
+    if (e.code === "Space") { e.preventDefault(); $("btnPlay").click(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); $("btnPrev").click(); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); $("btnNext").click(); }
+  });
+
+  function spawnEffects(i0, i1) {
+    // fruits that vanished between two snapshots were merged away
+    for (let i = i0; i < i1; i++) {
+      const a = toMap(snapshot(i)), b = toMap(snapshot(i + 1));
+      for (const [id, [type, x, y]] of a) if (!b.has(id)) effects.push({ x, y, r: R.radius[type], t: performance.now() });
+    }
+  }
+
+  function frame(t) {
+    if (R && playing) {
+      const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000));
+      // one snapshot = `every` physics frames of 1/60 s
+      pos += dt * speed * 60 / (R.every || 2);
+      if (pos >= timeline.length - 1) { pos = timeline.length - 1; setPlaying(false); }
+      const idx = Math.floor(pos);
+      if (idx > lastIdx && lastIdx >= 0 && speed <= 4) spawnEffects(lastIdx, idx);
+      lastIdx = idx;
+      draw();
+    } else if (effects.length) draw();
+    lastT = t;
+    requestAnimationFrame(frame);
+  }
+
+  // legend
+  $("legend").innerHTML = NAMES.map((n, i) => `<div class="fruit"><span class="dot" style="background:${COLORS[i]}"></span>${i}. ${n}</div>`).join("");
+
+  resize();
+  init();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

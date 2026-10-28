@@ -119,4 +119,6 @@ class MonteCarloAgent:
         results = game.evaluate(xs, frames=self.frames, second_xs=second)
         scores = [heuristic(r) for r in results]
         best = max(scores)
+        # kept for the replay viewer; does not affect the choice
+        self.last = {"xs": xs, "scores": scores, "unit": "heuristic"}
         return self.rng.choice([x for x, s in zip(xs, scores) if s == best])

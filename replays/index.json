@@ -1,0 +1,23 @@
+[
+ {
+  "file": "mc1_seed0.json",
+  "agent": "mc-combined-1ply-50",
+  "seed": 0,
+  "score": 4022,
+  "moves": 404
+ },
+ {
+  "file": "random_seed0.json",
+  "agent": "random",
+  "seed": 0,
+  "score": 1682,
+  "moves": 208
+ },
+ {
+  "file": "typematch_seed0.json",
+  "agent": "typematch",
+  "seed": 0,
+  "score": 1822,
+  "moves": 209
+ }
+]
