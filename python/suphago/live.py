@@ -38,6 +38,7 @@ READ_JS = r"""
   const m = nextEl && nextEl.src.match(/sprite\/(\d+)\.png/);
   const list = (typeof fruits !== 'undefined' ? fruits : []).filter(f => f.body && f.active);
   return {
+    t: s.matter.world.engine.timing.timestamp,
     isOver: typeof isOver !== 'undefined' && !!isOver,
     score: typeof score !== 'undefined' ? score : 0,
     canDrop: !!preview,
@@ -156,16 +157,20 @@ def main():
             x = agent.act(g)
             g.free()
             think = time.time() - t0
-            if not args.no_pause:
-                page.evaluate(RESUME_JS)
+            # Click while physics is still paused, and resume only after the page has
+            # added the fruit. Resuming first lets the board run several frames before
+            # the click lands, so the fruit would drop into a board the agent never saw.
             cx, cy = canvas_point(page, x)
             page.mouse.move(cx, cy)
             page.mouse.down()
             page.mouse.up()
+            taken = wait_for(page, lambda s: s["isOver"] or not s["canDrop"], timeout=5)
+            if not args.no_pause:
+                page.evaluate(RESUME_JS)
+            if taken is None:
+                print("클릭이 반영되지 않았습니다. 브라우저 창 위의 팝업을 확인하세요.")
             moves.append({"state": st, "x": x, "think": round(think, 2)})
             print(f"{len(moves):4d}수  점수 {st['score']:5d}  과일 {len(st['fruits']):2d}개  x={x:6.1f}  생각 {think:4.1f}초", flush=True)
-            # wait until the page has taken the drop (preview disappears)
-            wait_for(page, lambda s: s["isOver"] or not s["canDrop"], timeout=5)
 
         final = page.evaluate(READ_JS) or {"score": None}
         print(f"\n게임 종료: {final['score']}점, {len(moves)}수, {time.time() - t_start:.0f}초")
