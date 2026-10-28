@@ -12,6 +12,7 @@ set -euo pipefail
 
 NAME="${SUPHAGO_VM:-suphago-worker}"
 MACHINE="${SUPHAGO_MACHINE:-c2d-highcpu-32}"
+SPOT="${SUPHAGO_SPOT:-0}"   # 1 = spot VM (about a third of the price, but Google can take it back mid-run)
 ZONES="${SUPHAGO_ZONES:-asia-northeast3-a asia-northeast3-b asia-northeast3-c}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 STATE="$ROOT/cloud/.zone"
@@ -25,11 +26,12 @@ cmd_start() {
   [ -f "$ROOT/runs/value_h30.pt" ] || { echo "runs/value_h30.pt 가 없습니다. 맥에서 학습이 끝난 뒤 실행하세요."; exit 1; }
 
   gcloud services enable compute.googleapis.com --quiet
-  local created=""
+  local created="" model=()
+  if [ "$SPOT" = "1" ]; then model=(--provisioning-model SPOT --instance-termination-action STOP); fi
   for z in $ZONES; do
-    echo "서버 만드는 중: $MACHINE (스팟) / $z"
+    echo "서버 만드는 중: $MACHINE ($([ "$SPOT" = "1" ] && echo 스팟 || echo 일반)) / $z"
     if gcloud compute instances create "$NAME" --zone "$z" --machine-type "$MACHINE" \
-        --provisioning-model SPOT --instance-termination-action STOP \
+        "${model[@]}" \
         --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud \
         --boot-disk-size 30GB --boot-disk-type pd-balanced --quiet; then
       echo "$z" > "$STATE"; created=1; break
