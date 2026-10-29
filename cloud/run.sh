@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# Run benchmarks and game collection on a Google Cloud spot VM, from your Mac.
+# Run benchmarks and game collection on a Google Cloud VM, from your Mac.
 #
-#   bash cloud/run.sh start      create the VM, upload the code and models, start the jobs
+#   SUPHAGO_JOBS=cloud/jobs_x.sh bash cloud/run.sh start
+#                                create the VM, upload the code and models, start the jobs
 #   bash cloud/run.sh status     show progress
 #   bash cloud/run.sh logs       follow the job logs live (Ctrl+C to stop; the jobs keep running)
 #   bash cloud/run.sh fetch      download results (starts the VM again if it shut itself down)
 #   bash cloud/run.sh delete     delete the VM (do this when you are done; a stopped VM still bills its disk)
 #
-# The jobs to run are in cloud/jobs.sh (or SUPHAGO_JOBS=cloud/other.sh). SUPHAGO_DATA="mc1 mc2"
-# uploads those data/ folders too. When they finish, the VM shuts itself down so
+# SUPHAGO_JOBS names the job script to run on the VM (required for start; old ones are in
+# cloud/history/). SUPHAGO_DATA="mc1 mc2" uploads those data/ folders too. When they finish, the VM shuts itself down so
 # it stops billing CPU time. Needs gcloud logged in with a project set.
 set -euo pipefail
 
@@ -16,7 +17,7 @@ NAME="${SUPHAGO_VM:-suphago-worker}"
 MACHINE="${SUPHAGO_MACHINE:-c2d-highcpu-32}"
 SPOT="${SUPHAGO_SPOT:-0}"   # 1 = spot VM (about a third of the price, but Google can take it back mid-run)
 ZONES="${SUPHAGO_ZONES:-asia-northeast3-a asia-northeast3-b asia-northeast3-c}"
-JOBS="${SUPHAGO_JOBS:-cloud/jobs.sh}"
+JOBS="${SUPHAGO_JOBS:-}"
 DATA="${SUPHAGO_DATA:-}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 STATE="$ROOT/cloud/.zone"
@@ -26,6 +27,7 @@ ssh_vm() { gcloud compute ssh "$NAME" --zone "$(zone)" --quiet --command "$1"; }
 
 cmd_start() {
   [ -n "$(gcloud config get-value project 2>/dev/null)" ] || { echo "gcloud config set project 프로젝트ID 를 먼저 실행하세요."; exit 1; }
+  [ -n "$JOBS" ] || { echo "SUPHAGO_JOBS=cloud/작업.sh 로 돌릴 작업을 지정하세요."; exit 1; }
   [ -f "$ROOT/$JOBS" ] || { echo "$JOBS 가 없습니다."; exit 1; }
 
   gcloud services enable compute.googleapis.com --quiet

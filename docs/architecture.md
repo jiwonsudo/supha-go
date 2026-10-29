@@ -11,9 +11,10 @@
 ┌───────────────┴────────── Python (python/suphago) ─────────────┐
 │ bridge.py   워커 실행, 명령 보내기                              │
 │ agents.py   랜덤 / 타입매칭 / 몬테카를로                         │
-│ encode.py → model.py → train_value.py → value_agent.py  (AI)   │
-│ collect.py 기보 수집 │ bench.py 벤치마크 │ replay.py 리플레이   │
-│ live.py    실제 사이트에서 플레이 (Playwright)                  │
+│ encode.py → model.py → train_value.py / train_policy.py (학습)  │
+│ value_agent.py (value, mcv) │ search_agent.py (ps)   (AI 에이전트)│
+│ collect.py, collect_branch.py 기보 │ bench.py, sweep.py 벤치     │
+│ analyze.py, feature_study.py 분석 │ replay.py │ live.py (실제)   │
 └────────────────────────────────────────────────────────────────┘
   viewer/   리플레이 뷰어 (웹)      cloud/   Google Cloud 실행 스크립트
 ```
@@ -31,7 +32,7 @@
 | 파일 | 역할 |
 |---|---|
 | `src/suika.js` | 게임 엔진. `SuikaGame` 클래스 (`stepFrame`, `drop`, `turn`, `clone`, `fromState`, `state`) |
-| `src/server.js` | 워커. 명령: `info`, `new`, `state`, `turn`, `clone`, `free`, `evaluate`, `expand`, `turnRecorded`, `load`, `run` |
+| `src/server.js` | 워커. 명령: `info`, `new`, `state`, `turn`, `clone`, `free`, `freeMany`, `evaluate`(후보를 굴려 채점용 수치, 2수, 끝 판), `expand`(다음 수 시점까지), `children`(다음 수 시점의 정확한 복사본을 새 게임으로), `turnRecorded`, `load`, `run` |
 | `test/compare_ref.js` | 원본 페이지에서 녹화한 24수와 비교 |
 | `test/golden.js` | 4판 전체 상태 해시. 엔진 수정 후 값이 바뀌면 결과가 바뀐 것 |
 | `test/clone_and_speed.js` | clone 결정성, 속도 측정 |
@@ -42,20 +43,26 @@
 | 파일 | 역할 |
 |---|---|
 | `bridge.py` | `Engine`(워커 하나), `Game`(게임 하나), `State`(판 상태) |
-| `agents.py` | 랜덤, 타입매칭, 몬테카를로 에이전트와 채점 공식 |
+| `agents.py` | 랜덤, 타입매칭, 몬테카를로 에이전트, 채점 공식, 큰 과일 보너스 |
 | `encode.py` | 판 → 신경망 입력 (13채널 89×68 격자 + 과일 정보) |
-| `model.py` | 가치망 CNN |
-| `collect.py` | 기보 수집, 불러오기 |
+| `model.py` | 가치망 `ValueNet`, 정책망 `PolicyNet`, 저장·불러오기 |
+| `collect.py` | 기보 수집, 불러오기 (중복 제거, 끊긴 파일 허용) |
+| `collect_branch.py` | 분기 기보 (기존 판에서 무작위 한 수 + MC 40수) |
 | `train_value.py` | 가치망 학습 |
-| `value_agent.py` | 가치망으로 후보를 채점하는 에이전트 |
+| `train_policy.py` | 정책망 학습 |
+| `value_agent.py` | 가치망 에이전트(`value`), 가치망 도우미(`mcv`) |
+| `search_agent.py` | 정책망 탐색(`ps`) |
 | `bench.py` | 병렬 벤치마크 (중앙값, 25/75%) |
+| `sweep.py` | 여러 MC 설정을 같은 시드로 한 큐에서 벤치 |
+| `analyze.py` | 수박 제거와 판 길이 분석 |
+| `feature_study.py` | 판 특징과 결과의 관계 분석 |
 | `replay.py` | 한 판을 리플레이 파일로 기록 |
 | `live.py` | 실제 사이트에서 플레이 |
 
 ## 데이터 흐름
 
 ```
-[엔진] ──수집(collect)──> data/*.jsonl.gz ──학습(train_value)──> runs/*.pt
+[엔진] ──수집(collect)──> data/*.jsonl.gz ──학습(train_value, train_policy)──> runs/*.pt
    ▲                                                              │
    └───────────── 에이전트가 매 수 후보를 시뮬레이션 ◄─────────────┘
                          │
@@ -71,4 +78,4 @@
 
 ## 클라우드
 
-`cloud/run.sh`가 Google Cloud에 서버를 만들고, 코드와 모델을 올리고, 설치 후 엔진 해시를 확인한 뒤 `cloud/jobs.sh`를 백그라운드로 실행합니다. 작업이 끝나면 서버가 스스로 꺼집니다. 실행 방법은 [running.md](running.md)에 있습니다.
+`cloud/run.sh`가 Google Cloud에 서버를 만들고, 코드와 모델을 올리고, 설치 후 엔진 해시를 확인한 뒤 `SUPHAGO_JOBS`로 정한 작업 스크립트를 백그라운드로 실행합니다. 작업이 끝나면 서버가 스스로 꺼집니다. 실행 방법은 [running.md](running.md)에 있습니다.
