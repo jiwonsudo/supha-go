@@ -71,7 +71,10 @@ def load_games(path: str | Path, seen: set | None = None):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--agent", default="mc", choices=["random", "typematch", "mc", "value", "mcv"])
+    p.add_argument("--agent", default="mc", choices=["random", "typematch", "mc", "value", "mcv", "ps"])
+    p.add_argument("--policy", default=None, help="ps: policy network checkpoint")
+    p.add_argument("--k1", type=int, default=10)
+    p.add_argument("--k2", type=int, default=6)
     p.add_argument("--alpha", type=float, default=1.0)
     p.add_argument("--pair", type=float, default=0.0)
     p.add_argument("--wm", type=float, default=0.0)

@@ -32,6 +32,13 @@ def make_agent(args, radius, seed):
         return MCValueAgent(radius, args.model, n=args.n, mode=args.mode, device=args.device, seed=seed,
                             alpha=getattr(args, "alpha", 1.0), risk=getattr(args, "risk", 0.0), frames=args.frames, plies=args.plies,
                             pair=getattr(args, "pair", 0.0), wm=getattr(args, "wm", 0.0))
+    if args.agent == "ps":
+        from .search_agent import PolicySearchAgent
+        if not getattr(args, "policy", None):
+            raise SystemExit("--policy is required for --agent ps")
+        return PolicySearchAgent(radius, args.policy, value_path=args.model, k1=getattr(args, "k1", 10),
+                                 k2=getattr(args, "k2", 6), frames=args.frames, device=args.device, seed=seed,
+                                 alpha=getattr(args, "alpha", 1.0), risk=getattr(args, "risk", 1.0))
     if args.agent == "value":
         from .value_agent import ValueAgent  # needs torch
         if not args.model:
@@ -62,7 +69,10 @@ def quantile(xs, q):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--agent", default="random", choices=["random", "typematch", "mc", "value", "mcv"])
+    p.add_argument("--agent", default="random", choices=["random", "typematch", "mc", "value", "mcv", "ps"])
+    p.add_argument("--policy", default=None, help="ps: policy network checkpoint")
+    p.add_argument("--k1", type=int, default=10, help="ps: first drops from the policy")
+    p.add_argument("--k2", type=int, default=6, help="ps: second drops per first drop")
     p.add_argument("--alpha", type=float, default=1.0, help="mcv: heuristic points per 100 predicted points")
     p.add_argument("--model", default=None, help="value network checkpoint (value agent)")
     p.add_argument("--device", default="cpu", help="device for value network inference")

@@ -53,6 +53,12 @@ python -m suphago.bench --agent mcv --model ../runs/value_v3.pt --alpha 1 --risk
 python -m suphago.bench --agent mcv --plies 2 --model ../runs/value_v3.pt --alpha 1 --risk 1 --games 30 --workers 10
 ```
 
+```bash
+# 정책망 (MC가 둔 위치를 학습) 과 정책망 기반 2수 탐색
+python -m suphago.train_policy --data ../data/mc1 ../data/mc2 --epochs 10 --loader-workers 8 --out ../runs/policy_v1.pt
+python -m suphago.bench --agent ps --policy ../runs/policy_v1.pt --model ../runs/value_v3.pt --alpha 1 --risk 1 --games 30 --workers 10
+```
+
 맥에서 한 번에 돌리기: `nohup bash cloud/day.sh > day.log 2>&1 &` (약 4시간 30분)
 
 - 같은 폴더에 다시 수집할 땐 `--seed 100100`처럼 시작 번호를 바꿔야 판이 중복되지 않습니다.
