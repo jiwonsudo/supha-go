@@ -3,7 +3,10 @@
 #   nohup bash cloud/day.sh > day.log 2>&1 &
 # Logs go to python/*.log.
 cd "$(dirname "$0")/../python"
-step() { echo "$(date '+%F %T') start $1"; shift; "$@"; echo "$(date '+%F %T') done (exit $?)"; }
+# use the repo venv even when it is not activated in this shell
+[ -f ../.venv/bin/activate ] && . ../.venv/bin/activate
+command -v python >/dev/null || { echo "python not found: activate the venv first"; exit 1; }
+step() { echo "$(date '+%F %T') start $1"; shift; "$@"; local rc=$?; echo "$(date '+%F %T') done (exit $rc)"; }
 
 # 1. boards after a random (bad) move, then 40 Monte Carlo moves (about 75 min)
 step collect_branch python -m suphago.collect_branch --data ../data/mc1 ../data/mc2 --branches 800 --length 40 \

@@ -2,7 +2,10 @@
 # Next-step jobs for the Mac, run right after the overnight collection (2026-10-29).
 # Run from the repo root inside the venv. Logs go to python/*.log.
 cd "$(dirname "$0")/../python"
-step() { echo "$(date '+%F %T') start $1"; shift; "$@"; echo "$(date '+%F %T') done (exit $?)"; }
+# use the repo venv even when it is not activated in this shell
+[ -f ../.venv/bin/activate ] && . ../.venv/bin/activate
+command -v python >/dev/null || { echo "python not found: activate the venv first"; exit 1; }
+step() { echo "$(date '+%F %T') start $1"; shift; "$@"; local rc=$?; echo "$(date '+%F %T') done (exit $rc)"; }
 
 # 1. value net on all 1-ply + 2-ply games collected so far (30-move target + game-over head)
 step train_h30_all python -m suphago.train_value --data ../data/mc1 ../data/mc2 --horizon 30 --over-head \
