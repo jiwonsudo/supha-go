@@ -76,6 +76,36 @@ class ValueNet(nn.Module):
         return self.head_from(self.features(board), extra)
 
 
+class PolicyNet(nn.Module):
+    """89x68 board -> where to drop: one logit per 8px column of the box (68).
+
+    Same convolution trunk as ValueNet, but the head keeps the 12x9 map instead of
+    pooling it away, because the answer depends on where things are."""
+
+    N_BINS = 68
+
+    def __init__(self, width: int = 48, blocks: int = 2, head_ch: int = 16):
+        super().__init__()
+        w = width
+        self.stem = nn.Sequential(nn.Conv2d(N_CHANNELS, w, 3, padding=1, bias=False), nn.BatchNorm2d(w), nn.ReLU())
+        stages = []
+        chans = [w, w * 2, w * 2, w * 4]
+        for i in range(3):
+            stages.append(Down(chans[i], chans[i + 1]))
+            stages += [ResBlock(chans[i + 1]) for _ in range(blocks)]
+        self.body = nn.Sequential(*stages)
+        self.reduce = nn.Sequential(nn.Conv2d(chans[-1], head_ch, 1, bias=False), nn.BatchNorm2d(head_ch), nn.ReLU())
+        self.head = nn.Sequential(
+            nn.Linear(head_ch * 12 * 9 + N_EXTRA, 512), nn.ReLU(),
+            nn.Linear(512, self.N_BINS),
+        )
+        self.config = {"kind": "policy", "width": width, "blocks": blocks, "head_ch": head_ch}
+
+    def forward(self, board: torch.Tensor, extra: torch.Tensor) -> torch.Tensor:
+        x = self.reduce(self.body(self.stem(board))).flatten(1)
+        return self.head(torch.cat([x, extra], dim=1))
+
+
 def pick_device() -> torch.device:
     if torch.cuda.is_available():
         return torch.device("cuda")
@@ -84,13 +114,15 @@ def pick_device() -> torch.device:
     return torch.device("cpu")
 
 
-def save(model: ValueNet, path, meta: dict | None = None):
+def save(model: nn.Module, path, meta: dict | None = None):
     torch.save({"config": model.config, "state": model.state_dict(), "meta": meta or {}}, path)
 
 
-def load(path, device=None) -> ValueNet:
+def load(path, device=None) -> nn.Module:
     ck = torch.load(path, map_location="cpu", weights_only=False)
-    m = ValueNet(**ck["config"])
+    cfg = dict(ck["config"])
+    kind = cfg.pop("kind", "value")
+    m = (PolicyNet if kind == "policy" else ValueNet)(**cfg)
     m.load_state_dict(ck["state"])
     m.eval()
     if device is not None:

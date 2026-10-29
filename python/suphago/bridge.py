@@ -52,6 +52,10 @@ class Engine:
         r = self.call("load", state=state, seed=seed, hz=hz)
         return Game(self, r["id"], r["state"])
 
+    def free_many(self, ids):
+        if ids:
+            self.call("freeMany", ids=list(ids))
+
     def close(self):
         if self.proc.poll() is None:
             self.proc.stdin.close()
@@ -130,6 +134,15 @@ class Game:
         out = self.engine.call("expand", id=self.id, xs=[float(x) for x in xs])
         for r in out:
             r["state"] = State.from_json(r["state"])
+        return out
+
+    def children(self, xs):
+        """For each x: a new Game handle dropped there and run to the next decision point,
+        plus the counts the heuristic uses. Free them with Engine.free_many."""
+        out = self.engine.call("children", id=self.id, xs=[float(x) for x in xs])
+        for r in out:
+            r["game"] = Game(self.engine, r["id"], r["state"])
+            r["state"] = r["game"].state
         return out
 
     def free(self):

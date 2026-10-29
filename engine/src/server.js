@@ -89,6 +89,34 @@ function expand(g, xs) {
   });
 }
 
+// Like expand, but keeps each branch as a new game handle so search can go deeper
+// from it (exact physics, no rebuild from a state). The caller frees the handles.
+function children(g, xs) {
+  const n0 = g.fruits.length, top0 = topY(g);
+  return xs.map((x) => {
+    const c = g.clone();
+    const before = c.score;
+    const type = c.current;
+    c.drop(x);
+    const dropped = c.fruits[c.fruits.length - 1];
+    while (!c.canDrop && !c.isOver) c.stepFrame();
+    let touchNext = 0;
+    if (dropped.alive && type < 10) {
+      for (const f of c.fruits) {
+        if (f.type !== type + 1) continue;
+        const d = Math.hypot(f.body.position.x - dropped.body.position.x, f.body.position.y - dropped.body.position.y);
+        if (d < RADIUS[f.type] + RADIUS[type] + 1) touchNext++;
+      }
+    }
+    const h = nextHandle++;
+    games.set(h, c);
+    return {
+      id: h, gain: c.score - before, isOver: c.isOver, state: c.state(),
+      removed: n0 + 1 - c.fruits.length, topBefore: top0, topAfter: topY(c), touchNext,
+    };
+  });
+}
+
 // Same as turn, but also returns body positions every `every` frames for the replay
 // viewer. Each snapshot is a flat int array: id, type, x*10, y*10, angle*100, ...
 // The dropped fruit is captured from its first frame.
@@ -126,6 +154,8 @@ const handlers = {
     return g.state();
   },
   expand: ({ id, xs }) => expand(get(id), xs),
+  children: ({ id, xs }) => children(get(id), xs),
+  freeMany: ({ ids }) => ({ freed: ids.filter((i) => games.delete(i)).length }),
   turnRecorded: ({ id, x, every = 2 }) => turnRecorded(get(id), x, every),
   info: () => ({ radius: RADIUS, mergeScore: MERGE_SCORE, width: WIDTH, height: HEIGHT, marginX: MARGIN_X, dropY: DROP_Y }),
   new: ({ seed = 0, hz = 60 }) => {
