@@ -41,7 +41,7 @@ class ValueNet(nn.Module):
     """89x68 board -> 45x34 -> 23x17 -> 12x9, then pooled and joined with the
     current/next fruit vector."""
 
-    def __init__(self, width: int = 48, blocks: int = 2, over_head: bool = False):
+    def __init__(self, width: int = 48, blocks: int = 2, over_head: bool = False, dropout: float = 0.0):
         super().__init__()
         self.over_head = over_head
         w = width
@@ -58,7 +58,9 @@ class ValueNet(nn.Module):
             nn.Linear(256, 128), nn.ReLU(),
             nn.Linear(128, 2 if over_head else 1),
         )
-        self.config = {"width": width, "blocks": blocks, "over_head": over_head}
+        # no parameters, so checkpoints from before this option still load
+        self.drop = nn.Dropout(dropout)
+        self.config = {"width": width, "blocks": blocks, "over_head": over_head, "dropout": dropout}
 
     def features(self, board: torch.Tensor) -> torch.Tensor:
         """Board part only (the expensive convolutions)."""
@@ -66,7 +68,7 @@ class ValueNet(nn.Module):
         return torch.cat([x.mean(dim=(2, 3)), x.amax(dim=(2, 3))], dim=1)
 
     def head_from(self, feats: torch.Tensor, extra: torch.Tensor):
-        out = self.head(torch.cat([feats, extra], dim=1))
+        out = self.head(torch.cat([self.drop(feats), extra], dim=1))
         return out[:, 0], (out[:, 1] if self.over_head else None)
 
     def forward(self, board: torch.Tensor, extra: torch.Tensor):

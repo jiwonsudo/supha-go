@@ -29,7 +29,7 @@ def make_agent(args, radius, seed):
         if not args.model:
             raise SystemExit("--model is required for --agent mcv")
         return MCValueAgent(radius, args.model, n=args.n, mode=args.mode, device=args.device, seed=seed,
-                            alpha=getattr(args, "alpha", 1.0), risk=getattr(args, "risk", 0.0), frames=args.frames)
+                            alpha=getattr(args, "alpha", 1.0), risk=getattr(args, "risk", 0.0), frames=args.frames, plies=args.plies)
     if args.agent == "value":
         from .value_agent import ValueAgent  # needs torch
         if not args.model:

@@ -45,6 +45,16 @@ python -m suphago.train_value --data ../data/mc1 --epochs 15 --loader-workers 8 
 python -m suphago.train_value --data ../data/mc1 ../data/mc2 --horizon 30 --over-head --epochs 15 --loader-workers 8 --out ../runs/value_h30_all.pt
 ```
 
+```bash
+# 나쁜 수 뒤의 판 (분기 기보)
+python -m suphago.collect_branch --data ../data/mc1 ../data/mc2 --branches 800 --length 40 --workers 10 --out ../data/branch
+# 몬테카를로 + 가치망 도우미, 1수와 2수
+python -m suphago.bench --agent mcv --model ../runs/value_v3.pt --alpha 1 --risk 1 --games 30 --workers 10
+python -m suphago.bench --agent mcv --plies 2 --model ../runs/value_v3.pt --alpha 1 --risk 1 --games 30 --workers 10
+```
+
+맥에서 한 번에 돌리기: `nohup bash cloud/day.sh > day.log 2>&1 &` (약 4시간 30분)
+
 - 같은 폴더에 다시 수집할 땐 `--seed 100100`처럼 시작 번호를 바꿔야 판이 중복되지 않습니다.
 - 학습 진행은 `tail -f train_*.log`로 봅니다. `val_mae`가 낮을수록 좋습니다.
 

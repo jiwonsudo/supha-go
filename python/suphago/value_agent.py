@@ -46,29 +46,39 @@ class ValueAgent:
         tag = "".join([f"-r{risk:g}" if risk else "", f"-b{blend:g}" if blend else ""])
         self.name = f"value-{mode}-{n}{tag}"
 
-    def score_states(self, states):
-        """Mean value (points / VALUE_SCALE) and mean game-over probability per state."""
+    def score_states(self, states, unknown_current: bool = False):
+        """Mean value (points / VALUE_SCALE) and mean game-over probability per state.
+
+        The next fruit is always unknown to the player at these states, so it is averaged
+        over all 5 spawn types. With unknown_current (states two drops ahead) the current
+        fruit is unknown too and both are averaged (25 combinations)."""
         if not states:
             return np.zeros(0, dtype=np.float32), np.zeros(0, dtype=np.float32)
+        combos = [(c, n) for c in range(SPAWN_TYPES) for n in range(SPAWN_TYPES)] if unknown_current \
+            else [(None, n) for n in range(SPAWN_TYPES)]
+        k = len(combos)
         boards, extras = [], []
         for s in states:
             b, e = encode(s, self.radius)
             boards.append(b)
-            for nxt in range(SPAWN_TYPES):
+            for cur, nxt in combos:
                 e2 = e.copy()
+                if cur is not None:
+                    e2[:5] = 0.0
+                    e2[cur] = 1.0
                 e2[5:] = 0.0
                 e2[5 + nxt] = 1.0
                 extras.append(e2)
         with torch.no_grad():
-            # the unknown fruit only enters the small head, so run the board once per state
+            # the unknown fruits only enter the small head, so run the board once per state
             feats = self.model.features(torch.from_numpy(np.stack(boards)).to(self.device))
-            feats = feats.repeat_interleave(SPAWN_TYPES, dim=0)
+            feats = feats.repeat_interleave(k, dim=0)
             v, ol = self.model.head_from(feats, torch.from_numpy(np.stack(extras)).to(self.device))
-        v = v.float().cpu().numpy().reshape(len(states), SPAWN_TYPES).mean(axis=1)
+        v = v.float().cpu().numpy().reshape(len(states), k).mean(axis=1)
         if ol is None:
             p = np.zeros(len(states), dtype=np.float32)
         else:
-            p = torch.sigmoid(ol).float().cpu().numpy().reshape(len(states), SPAWN_TYPES).mean(axis=1)
+            p = torch.sigmoid(ol).float().cpu().numpy().reshape(len(states), k).mean(axis=1)
         return v, p
 
     def act(self, game: Game) -> float:
@@ -103,21 +113,29 @@ class MCValueAgent(ValueAgent):
     """
 
     def __init__(self, radius, model_path, n=50, mode="combined", device="cpu", seed=0,
-                 alpha=1.0, risk=1.0, frames=120):
+                 alpha=1.0, risk=1.0, frames=120, plies=1):
         super().__init__(radius, model_path, n=n, mode=mode, device=device, seed=seed)
-        self.alpha, self.risk, self.frames = alpha, risk, frames
-        self.name = f"mcv-{mode}-{n}-a{alpha:g}-r{risk:g}"
+        self.alpha, self.risk, self.frames, self.plies = alpha, risk, frames, plies
+        self._cand.plies = plies
+        ply = f"-{plies}ply" if plies != 1 else ""
+        self.name = f"mcv-{mode}{ply}-{n}-a{alpha:g}-r{risk:g}"
 
     def act(self, game: Game) -> float:
         from .agents import heuristic
         xs = self._cand.candidates(game)
-        results = game.evaluate(xs, frames=self.frames, with_state=True)
+        second = None
+        if self.plies == 2:
+            # same second-ply sampling as the 2-ply baseline: the known next fruit at one random x
+            second = self._cand.second_candidates(game, len(xs))
+        results = game.evaluate(xs, frames=self.frames, second_xs=second, with_state=True)
         base = np.array([heuristic(r) for r in results], dtype=np.float32)
-        alive = [i for i, r in enumerate(results) if not r["isOver"] and "state" in r]
+        # board to score: after the second drop when there is one
+        ends = [r.get("second", {}) if second is not None else r for r in results]
+        alive = [i for i, (r, e) in enumerate(zip(results, ends)) if not r["isOver"] and "state" in e]
         v = np.zeros(len(xs), dtype=np.float32)
         p = np.zeros(len(xs), dtype=np.float32)
         if alive and (self.alpha or self.risk):
-            vv, pp = self.score_states([results[i]["state"] for i in alive])
+            vv, pp = self.score_states([ends[i]["state"] for i in alive], unknown_current=second is not None)
             v[alive], p[alive] = vv, pp
         scores = base + self.alpha * v * VALUE_SCALE / 100.0 - self.risk * 10.0 * p
         best = scores.max()

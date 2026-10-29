@@ -110,12 +110,15 @@ class MonteCarloAgent:
             xs.append(self.rng.uniform(lo, hi))
         return xs
 
+    def second_candidates(self, game: Game, k: int) -> list[float]:
+        lo2, hi2 = x_range(self.radius, game.state.next)
+        return [self.rng.uniform(lo2, hi2) for _ in range(k)]
+
     def act(self, game: Game) -> float:
         xs = self.candidates(game)
         second = None
         if self.plies == 2:
-            lo2, hi2 = x_range(self.radius, game.state.next)
-            second = [self.rng.uniform(lo2, hi2) for _ in xs]
+            second = self.second_candidates(game, len(xs))
         results = game.evaluate(xs, frames=self.frames, second_xs=second)
         scores = [heuristic(r) for r in results]
         best = max(scores)

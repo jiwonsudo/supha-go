@@ -54,6 +54,7 @@ function evaluate(g, xs, frames, secondXs, withState) {
       for (let k = 0; k < frames && !c.isOver; k++) c.stepFrame();
     }
     first.second = { gain: c.score - s2, removed: n2 + 1 - c.fruits.length, topAfter: topY(c), isOver: c.isOver };
+    if (withState && !c.isOver) first.second.state = c.state();
     return first;
   });
 }

@@ -120,6 +120,8 @@ class Game:
             for r in out:
                 if "state" in r:
                     r["state"] = State.from_json(r["state"])
+                if "state" in r.get("second", {}):
+                    r["second"]["state"] = State.from_json(r["second"]["state"])
         return out
 
     def expand(self, xs):

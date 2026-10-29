@@ -36,13 +36,19 @@ def load_samples(paths: list[str]):
 
 def flatten(games, horizon: int = 0, over_within: int = 15):
     """Value target: points gained over the next `horizon` moves (0 = until the game ends).
-    Game-over target: 1 if the game ends within `over_within` moves of this state."""
+    Game-over target: 1 if the game ends within `over_within` moves of this state.
+
+    Branch records (collect_branch.py) can stop before the game ends ("ended": False).
+    Their states are used only where the whole horizon fits inside the record."""
     xs, ys, os_ = [], [], []
     for g in games:
         steps = g["steps"]
         n = len(steps)
+        ended = g.get("ended", True)
         for i, st in enumerate(steps):
             j = i + horizon
+            if not ended and (horizon == 0 or j > n or i + over_within >= n):
+                continue
             later = steps[j]["score"] if (horizon and j < n) else g["score"]
             xs.append(st["s"])
             ys.append((later - st["score"]) / VALUE_SCALE)
@@ -109,29 +115,41 @@ def main():
     ap.add_argument("--over-head", action="store_true", help="also predict whether the game ends soon")
     ap.add_argument("--over-within", type=int, default=15, help="'ends soon' = within this many moves")
     ap.add_argument("--over-weight", type=float, default=0.5)
+    ap.add_argument("--wd", type=float, default=1e-4, help="AdamW weight decay")
+    ap.add_argument("--dropout", type=float, default=0.0, help="dropout before the value head")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     games = load_samples(args.data)
-    random.Random(args.seed).shuffle(games)
-    n_val = max(1, int(len(games) * args.val_frac))
-    val_games, train_games = games[:n_val], games[n_val:]
+    # split by game seed; a branch goes with the game it was cut from, so no board
+    # family appears on both sides
+    key = lambda g: g["from"]["seed"] if "from" in g else g["seed"]
+    groups = sorted({key(g) for g in games})
+    random.Random(args.seed).shuffle(groups)
+    val_keys = set(groups[: max(1, int(len(groups) * args.val_frac))])
+    val_games = [g for g in games if key(g) in val_keys]
+    train_games = [g for g in games if key(g) not in val_keys]
     tx, ty, to = flatten(train_games, args.horizon, args.over_within)
     vx, vy, vo = flatten(val_games, args.horizon, args.over_within)
     print(f"games: {len(train_games)} train / {len(val_games)} val, states: {len(tx)} / {len(vx)}")
+    vb = [g for g in val_games if "from" in g]
+    bx, by, bo = flatten(vb, args.horizon, args.over_within) if vb else ([], None, None)
+    if bx:
+        print(f"val branch states (boards after a random move): {len(bx)}")
     print(f"baseline MAE (predict train mean): {np.abs(vy - ty.mean()).mean() * VALUE_SCALE:.1f} points")
 
     device = pick_device()
-    model = ValueNet(width=args.width, blocks=args.blocks, over_head=args.over_head).to(device)
+    model = ValueNet(width=args.width, blocks=args.blocks, over_head=args.over_head, dropout=args.dropout).to(device)
     print(f"device {device}, params {sum(p.numel() for p in model.parameters()) / 1e6:.2f}M")
 
     kw = dict(batch_size=args.batch, num_workers=args.loader_workers, persistent_workers=args.loader_workers > 0)
     train_loader = DataLoader(StateDataset(tx, ty, to, flip=True), shuffle=True, drop_last=True, **kw)
     val_loader = DataLoader(StateDataset(vx, vy, vo, flip=False), shuffle=False, **kw)
+    branch_loader = DataLoader(StateDataset(bx, by, bo, flip=False), shuffle=False, **kw) if bx else None
 
-    opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
+    opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.wd)
     total = args.epochs * len(train_loader)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=max(total, 1), pct_start=0.1)
     loss_fn = torch.nn.SmoothL1Loss()
@@ -157,6 +175,10 @@ def main():
             tot += loss.item() * len(y)
             n += len(y)
         ev = evaluate(model, val_loader, device)
+        if branch_loader is not None:
+            eb = evaluate(model, branch_loader, device)
+            ev["val_branch_mae"] = eb["val_mae"]
+            ev["val_branch_corr"] = eb["val_corr"]
         mae = ev["val_mae"]
         row = {"epoch": ep, "train_loss": tot / max(n, 1), **ev, "sec": round(time.time() - t0, 1)}
         log.append(row)
