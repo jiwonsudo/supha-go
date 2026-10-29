@@ -3,6 +3,7 @@
 #
 #   bash cloud/run.sh start      create the VM, upload the code and models, start the jobs
 #   bash cloud/run.sh status     show progress
+#   bash cloud/run.sh logs       follow the job logs live (Ctrl+C to stop; the jobs keep running)
 #   bash cloud/run.sh fetch      download results (starts the VM again if it shut itself down)
 #   bash cloud/run.sh delete     delete the VM (do this when you are done; a stopped VM still bills its disk)
 #
@@ -79,6 +80,10 @@ cmd_status() {
   ssh_vm 'tail -n 15 ~/jobs.log; echo; for f in ~/supha-go/python/*.log; do echo "== $(basename $f): $(grep -c "^{" $f 2>/dev/null) 판 완료"; tail -n 1 $f; done' || true
 }
 
+cmd_logs() {
+  ssh_vm 'cd ~/supha-go/python && tail -n 3 -F ~/jobs.log *.log'
+}
+
 cmd_fetch() {
   if [ "$(gcloud compute instances describe "$NAME" --zone "$(zone)" --format 'value(status)')" != "RUNNING" ]; then
     echo "서버 켜는 중 (결과를 받기 위해)..."
@@ -105,7 +110,8 @@ cmd_delete() {
 case "${1:-}" in
   start) cmd_start ;;
   status) cmd_status ;;
+  logs) cmd_logs ;;
   fetch) cmd_fetch ;;
   delete) cmd_delete ;;
-  *) sed -n '2,10p' "$0"; exit 1 ;;
+  *) sed -n '2,12p' "$0"; exit 1 ;;
 esac
