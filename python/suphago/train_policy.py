@@ -86,8 +86,12 @@ class MoveDataset(Dataset):
             mask = mask[::-1].copy()
         if self.train and random.random() < self.hide_next:
             extra[5:] = 0.0
+        # keep the target on reachable columns only (masked logits are -1e4)
+        mask[b] = True
+        t = soft_target(b, self.sigma) * mask
+        t = (t / t.sum()).astype(np.float32)
         return (torch.from_numpy(board), torch.from_numpy(extra), torch.tensor(b),
-                torch.from_numpy(soft_target(b, self.sigma)), torch.from_numpy(mask))
+                torch.from_numpy(t), torch.from_numpy(mask))
 
 
 def masked_logits(logits, mask):
