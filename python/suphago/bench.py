@@ -23,7 +23,7 @@ def make_agent(args, radius, seed):
     if args.agent == "typematch":
         return TypeMatchAgent(radius, seed)
     if args.agent == "mc":
-        return MonteCarloAgent(radius, n=args.n, mode=args.mode, plies=args.plies, frames=args.frames, seed=seed,
+        return MonteCarloAgent(radius, n=args.n, mode=args.mode, plies=args.plies, frames=args.frames, seed=seed, s2=getattr(args, "s2", 1),
                                pair=getattr(args, "pair", 0.0), wm=getattr(args, "wm", 0.0))
     if args.agent == "mcv":
         from .value_agent import MCValueAgent
@@ -82,6 +82,7 @@ def main():
     p.add_argument("--wm", type=float, default=0.0, help="mc/mcv: bonus weight for big merges (melon, watermelon, clear)")
     p.add_argument("--mode", default="combined", choices=["random", "steps", "combined"])
     p.add_argument("--plies", type=int, default=1)
+    p.add_argument("--s2", type=int, default=1, help="mc 2-ply: random second drops per first drop")
     p.add_argument("--n", type=int, default=50, help="candidates per move (mc)")
     p.add_argument("--frames", type=int, default=120, help="frames simulated after each candidate drop (mc)")
     p.add_argument("--games", type=int, default=30)

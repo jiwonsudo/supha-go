@@ -130,11 +130,12 @@ class MonteCarloAgent:
     plies: 1 or 2 (second ply drops the known next fruit at one random x).
     """
 
-    def __init__(self, radius, n=50, mode="combined", plies=1, frames=120, seed=0, pair=0.0, wm=0.0):
+    def __init__(self, radius, n=50, mode="combined", plies=1, frames=120, seed=0, pair=0.0, wm=0.0, s2=1):
         self.radius, self.n, self.mode, self.plies, self.frames = radius, n, mode, plies, frames
         self.pair, self.wm = pair, wm
+        self.s2 = s2   # 2-ply: random second drops tried per first drop (the best one counts)
         self.rng = random.Random(seed)
-        tag = "".join([f"-p{pair:g}" if pair else "", f"-w{wm:g}" if wm else ""])
+        tag = "".join([f"-s{s2}" if s2 > 1 else "", f"-p{pair:g}" if pair else "", f"-w{wm:g}" if wm else ""])
         self.name = f"mc-{mode}-{plies}ply-{n}{tag}"
 
     def candidates(self, game: Game) -> list[float]:
@@ -153,10 +154,13 @@ class MonteCarloAgent:
     def act(self, game: Game) -> float:
         xs = self.candidates(game)
         second = None
+        k = self.s2 if self.plies == 2 else 1
+        firsts = [x for x in xs for _ in range(k)]
         if self.plies == 2:
-            second = self.second_candidates(game, len(xs))
-        results = game.evaluate(xs, frames=self.frames, second_xs=second, with_state=bool(self.pair))
-        scores = [heuristic(r) + big_bonus(r, self.radius, self.pair, self.wm) for r in results]
+            second = self.second_candidates(game, len(firsts))
+        results = game.evaluate(firsts, frames=self.frames, second_xs=second, with_state=bool(self.pair))
+        flat = [heuristic(r) + big_bonus(r, self.radius, self.pair, self.wm) for r in results]
+        scores = [max(flat[i * k:(i + 1) * k]) for i in range(len(xs))]
         best = max(scores)
         # kept for the replay viewer; does not affect the choice
         self.last = {"xs": xs, "scores": scores, "unit": "heuristic"}
