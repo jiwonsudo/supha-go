@@ -23,13 +23,15 @@ def make_agent(args, radius, seed):
     if args.agent == "typematch":
         return TypeMatchAgent(radius, seed)
     if args.agent == "mc":
-        return MonteCarloAgent(radius, n=args.n, mode=args.mode, plies=args.plies, frames=args.frames, seed=seed)
+        return MonteCarloAgent(radius, n=args.n, mode=args.mode, plies=args.plies, frames=args.frames, seed=seed,
+                               pair=getattr(args, "pair", 0.0), wm=getattr(args, "wm", 0.0))
     if args.agent == "mcv":
         from .value_agent import MCValueAgent
         if not args.model:
             raise SystemExit("--model is required for --agent mcv")
         return MCValueAgent(radius, args.model, n=args.n, mode=args.mode, device=args.device, seed=seed,
-                            alpha=getattr(args, "alpha", 1.0), risk=getattr(args, "risk", 0.0), frames=args.frames, plies=args.plies)
+                            alpha=getattr(args, "alpha", 1.0), risk=getattr(args, "risk", 0.0), frames=args.frames, plies=args.plies,
+                            pair=getattr(args, "pair", 0.0), wm=getattr(args, "wm", 0.0))
     if args.agent == "value":
         from .value_agent import ValueAgent  # needs torch
         if not args.model:
@@ -66,6 +68,8 @@ def main():
     p.add_argument("--device", default="cpu", help="device for value network inference")
     p.add_argument("--risk", type=float, default=0.0, help="value agent: penalty x1000 points per unit of game-over probability")
     p.add_argument("--blend", type=float, default=0.0, help="value agent: points per unit of the Monte Carlo heuristic")
+    p.add_argument("--pair", type=float, default=0.0, help="mc/mcv: bonus weight for big same-type pairs left close")
+    p.add_argument("--wm", type=float, default=0.0, help="mc/mcv: bonus weight for big merges (melon, watermelon, clear)")
     p.add_argument("--mode", default="combined", choices=["random", "steps", "combined"])
     p.add_argument("--plies", type=int, default=1)
     p.add_argument("--n", type=int, default=50, help="candidates per move (mc)")

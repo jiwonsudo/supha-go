@@ -165,6 +165,7 @@ class SuikaGame {
       this._destroy(fa);
       this._destroy(fb);
       this.score += MERGE_SCORE[type];
+      if (this.merged) this.merged[type]++; // merge counts by type, only set on search branches
       if (type < MAX_TYPE) this._addFruit(type + 1, px, py);
     } else {
       const ya = pair.bodyA.position.y - pair.bodyA.centerOffset.y / 2;

@@ -88,6 +88,40 @@ def heuristic(r: dict) -> float:
     return v
 
 
+# Long games are exactly the ones that clear two watermelons (docs/experiments.md 3-4),
+# but the heuristic above never rewards building toward that. These optional terms do.
+MERGE_BONUS = {8: 0.5, 9: 2.0, 10: 8.0}   # merging two of type t: 8+8 -> melon, 9+9 -> watermelon, 10+10 -> clear
+PAIR_BONUS = {8: 0.5, 9: 1.0, 10: 2.0}    # two of type t close together, ready to merge
+PAIR_RANGE = 200.0                        # px of gap at which the pair bonus reaches 0
+
+
+def big_bonus(r: dict, radius, pair: float, wm: float) -> float:
+    """Bonus for big merges during the look-ahead and for big same-type pairs left close."""
+    if r["isOver"]:
+        return 0.0
+    end = r
+    v = 0.0
+    for part in (r, r.get("second")):
+        if part is None:
+            continue
+        if part.get("isOver"):
+            return 0.0
+        m = part.get("merged")
+        if m and wm:
+            v += wm * sum(b * m[t] for t, b in MERGE_BONUS.items())
+        if "state" in part:
+            end = part
+    st = end.get("state")
+    if pair and st is not None:
+        for t, b in PAIR_BONUS.items():
+            fs = [f for f in st.fruits if f.type == t]
+            if len(fs) < 2:
+                continue
+            gap = min(math.hypot(a.x - c.x, a.y - c.y) for i, a in enumerate(fs) for c in fs[i + 1:]) - 2 * radius[t]
+            v += pair * b * max(0.0, 1.0 - max(gap, 0.0) / PAIR_RANGE)
+    return v
+
+
 class MonteCarloAgent:
     """Simulate candidate drops and pick the best by the heuristic.
 
@@ -96,10 +130,12 @@ class MonteCarloAgent:
     plies: 1 or 2 (second ply drops the known next fruit at one random x).
     """
 
-    def __init__(self, radius, n=50, mode="combined", plies=1, frames=120, seed=0):
+    def __init__(self, radius, n=50, mode="combined", plies=1, frames=120, seed=0, pair=0.0, wm=0.0):
         self.radius, self.n, self.mode, self.plies, self.frames = radius, n, mode, plies, frames
+        self.pair, self.wm = pair, wm
         self.rng = random.Random(seed)
-        self.name = f"mc-{mode}-{plies}ply-{n}"
+        tag = "".join([f"-p{pair:g}" if pair else "", f"-w{wm:g}" if wm else ""])
+        self.name = f"mc-{mode}-{plies}ply-{n}{tag}"
 
     def candidates(self, game: Game) -> list[float]:
         lo, hi = x_range(self.radius, game.state.current)
@@ -119,8 +155,8 @@ class MonteCarloAgent:
         second = None
         if self.plies == 2:
             second = self.second_candidates(game, len(xs))
-        results = game.evaluate(xs, frames=self.frames, second_xs=second)
-        scores = [heuristic(r) for r in results]
+        results = game.evaluate(xs, frames=self.frames, second_xs=second, with_state=bool(self.pair))
+        scores = [heuristic(r) + big_bonus(r, self.radius, self.pair, self.wm) for r in results]
         best = max(scores)
         # kept for the replay viewer; does not affect the choice
         self.last = {"xs": xs, "scores": scores, "unit": "heuristic"}

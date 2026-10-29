@@ -113,22 +113,25 @@ class MCValueAgent(ValueAgent):
     """
 
     def __init__(self, radius, model_path, n=50, mode="combined", device="cpu", seed=0,
-                 alpha=1.0, risk=1.0, frames=120, plies=1):
+                 alpha=1.0, risk=1.0, frames=120, plies=1, pair=0.0, wm=0.0):
         super().__init__(radius, model_path, n=n, mode=mode, device=device, seed=seed)
         self.alpha, self.risk, self.frames, self.plies = alpha, risk, frames, plies
+        self.pair, self.wm = pair, wm
         self._cand.plies = plies
         ply = f"-{plies}ply" if plies != 1 else ""
-        self.name = f"mcv-{mode}{ply}-{n}-a{alpha:g}-r{risk:g}"
+        tag = "".join([f"-p{pair:g}" if pair else "", f"-w{wm:g}" if wm else ""])
+        self.name = f"mcv-{mode}{ply}-{n}-a{alpha:g}-r{risk:g}{tag}"
 
     def act(self, game: Game) -> float:
-        from .agents import heuristic
+        from .agents import big_bonus, heuristic
         xs = self._cand.candidates(game)
         second = None
         if self.plies == 2:
             # same second-ply sampling as the 2-ply baseline: the known next fruit at one random x
             second = self._cand.second_candidates(game, len(xs))
         results = game.evaluate(xs, frames=self.frames, second_xs=second, with_state=True)
-        base = np.array([heuristic(r) for r in results], dtype=np.float32)
+        base = np.array([heuristic(r) + big_bonus(r, self.radius, self.pair, self.wm) for r in results],
+                        dtype=np.float32)
         # board to score: after the second drop when there is one
         ends = [r.get("second", {}) if second is not None else r for r in results]
         alive = [i for i, (r, e) in enumerate(zip(results, ends)) if not r["isOver"] and "state" in e]

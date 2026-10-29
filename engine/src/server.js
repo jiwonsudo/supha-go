@@ -23,6 +23,7 @@ function evaluate(g, xs, frames, secondXs, withState) {
   const base = { score: g.score, n: g.fruits.length, top: topY(g) };
   return xs.map((x, i) => {
     const c = g.clone();
+    c.merged = new Array(11).fill(0);
     const type = c.current;
     c.drop(x);
     const dropped = c.fruits[c.fruits.length - 1];
@@ -43,6 +44,7 @@ function evaluate(g, xs, frames, secondXs, withState) {
       droppedAlive: dropped.alive,
       touchNext,
       isOver: c.isOver,
+      merged: c.merged.slice(),
     };
     if (withState && !c.isOver) first.state = c.state();
     if (!secondXs || c.isOver) return first;
@@ -53,7 +55,8 @@ function evaluate(g, xs, frames, secondXs, withState) {
       c.drop(secondXs[i]);
       for (let k = 0; k < frames && !c.isOver; k++) c.stepFrame();
     }
-    first.second = { gain: c.score - s2, removed: n2 + 1 - c.fruits.length, topAfter: topY(c), isOver: c.isOver };
+    first.second = { gain: c.score - s2, removed: n2 + 1 - c.fruits.length, topAfter: topY(c), isOver: c.isOver,
+      merged: c.merged.map((v, t) => v - first.merged[t]) };
     if (withState && !c.isOver) first.second.state = c.state();
     return first;
   });
