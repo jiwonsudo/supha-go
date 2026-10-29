@@ -178,9 +178,13 @@ tr.picked td { color: var(--pick); font-weight: 600; }
     if (!name) return "";
     if (name === "random") return "랜덤";
     if (name === "typematch") return "타입매칭";
-    let m = name.match(/^mc-(\w+)-(\d)ply-(\d+)$/);
-    if (m) return `몬테카를로 ${m[2]}수 · 후보 ${m[3]}`;
-    m = name.match(/^value-(\w+)-(\d+)$/);
+    // optional tags: -p<pair> -w<wm> (big-fruit bonus), -a<alpha> -r<risk> (value helper)
+    const bonus = /-p[\d.]+/.test(name) || /-w[\d.]+$/.test(name) ? " + 큰 과일 보너스" : "";
+    let m = name.match(/^mc-(\w+)-(\d)ply-(\d+)/);
+    if (m) return `몬테카를로 ${m[2]}수${bonus} · 후보 ${m[3]}`;
+    m = name.match(/^mcv-(\w+?)(?:-(\d)ply)?-(\d+)-a/);
+    if (m) return `몬테카를로 ${m[2] || 1}수 + 가치망 도우미${bonus} · 후보 ${m[3]}`;
+    m = name.match(/^value-(\w+)-(\d+)/);
     if (m) return `가치망 · 후보 ${m[2]}`;
     return name;
   };
