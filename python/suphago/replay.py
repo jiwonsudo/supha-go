@@ -20,7 +20,10 @@ from .bridge import Engine
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--agent", default="mc", choices=["random", "typematch", "mc", "value"])
+    p.add_argument("--agent", default="mc", choices=["random", "typematch", "mc", "value", "mcv"])
+    p.add_argument("--alpha", type=float, default=1.0, help="mcv")
+    p.add_argument("--pair", type=float, default=0.0, help="mc/mcv big pair bonus")
+    p.add_argument("--wm", type=float, default=0.0, help="mc/mcv big merge bonus")
     p.add_argument("--mode", default="combined", choices=["random", "steps", "combined"])
     p.add_argument("--plies", type=int, default=1)
     p.add_argument("--n", type=int, default=50)
