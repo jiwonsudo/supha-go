@@ -1,0 +1,16 @@
+2026-10-29 14:40:25 start train_v4
+games: 283 train / 28 val, states: 107438 / 10481
+baseline MAE (predict train mean): 1137.6 points
+device mps, params 2.42M
+{"epoch": 1, "train_loss": 0.360730753202427, "val_mae": 652.9199829101562, "val_corr": 0.7575409800193315, "val_over_auc": 0.9879087565848326, "sec": 705.4}
+{"epoch": 2, "train_loss": 0.25668098100045417, "val_mae": 568.9920654296875, "val_corr": 0.7711481830824883, "val_over_auc": 0.9874155745192421, "sec": 714.5}
+{"epoch": 3, "train_loss": 0.20702881534941725, "val_mae": 617.1619873046875, "val_corr": 0.7516067459557908, "val_over_auc": 0.9873753437365405, "sec": 727.6}
+{"epoch": 4, "train_loss": 0.17669984047481155, "val_mae": 607.9512329101562, "val_corr": 0.7438151984499819, "val_over_auc": 0.9783014090240012, "sec": 697.7}
+{"epoch": 5, "train_loss": 0.15679994307298364, "val_mae": 595.8056640625, "val_corr": 0.7538096395773654, "val_over_auc": 0.982053994443419, "sec": 694.4}
+{"epoch": 6, "train_loss": 0.14060940906441013, "val_mae": 625.7662963867188, "val_corr": 0.7414551604920345, "val_over_auc": 0.9779859523572872, "sec": 694.9}
+{"epoch": 7, "train_loss": 0.1292458614401146, "val_mae": 640.5419311523438, "val_corr": 0.7377202696360693, "val_over_auc": 0.9791041314647319, "sec": 696.2}
+{"epoch": 8, "train_loss": 0.11535774563441413, "val_mae": 631.6644897460938, "val_corr": 0.7255785740448943, "val_over_auc": 0.9824936932331824, "sec": 700.5}
+cloud/night2.sh: line 8:   281 Terminated: 15          "$@"
+2026-10-29 16:24:32 done (exit 143)
+/opt/homebrew/Cellar/python@3.12/3.12.16/Frameworks/Python.framework/Versions/3.12/lib/python3.12/multiprocessing/resource_tracker.py:279: UserWarning: resource_tracker: There appear to be 64 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

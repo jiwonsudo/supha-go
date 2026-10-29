@@ -1,0 +1,22 @@
+2026-10-29 16:38:18 start train_v3
+games: 1026 train / 85 val, states: 115540 / 11077
+val branch states (boards after a random move): 596
+baseline MAE (predict train mean): 69.3 points
+device mps, params 2.42M
+{"epoch": 1, "train_loss": 0.05047157686616722, "val_mae": 177.10220336914062, "val_corr": 0.46954364622693656, "val_over_auc": 0.9891284625619935, "val_branch_mae": 171.33621215820312, "val_branch_corr": 0.6549719606954496, "sec": 789.7}
+{"epoch": 2, "train_loss": 0.03151689296146388, "val_mae": 70.7306137084961, "val_corr": 0.5402641088361252, "val_over_auc": 0.9914855583780224, "val_branch_mae": 62.28915023803711, "val_branch_corr": 0.7214067570805817, "sec": 804.0}
+{"epoch": 3, "train_loss": 0.029092859249652887, "val_mae": 73.49742889404297, "val_corr": 0.587482441971972, "val_over_auc": 0.9906816593416932, "val_branch_mae": 67.94178009033203, "val_branch_corr": 0.7297776817442146, "sec": 832.3}
+{"epoch": 4, "train_loss": 0.02809279581982056, "val_mae": 58.41676330566406, "val_corr": 0.5913151109258097, "val_over_auc": 0.9919244687714205, "val_branch_mae": 50.888851165771484, "val_branch_corr": 0.730697942008813, "sec": 782.9}
+{"epoch": 5, "train_loss": 0.026500505327088076, "val_mae": 57.6659049987793, "val_corr": 0.5726049087356007, "val_over_auc": 0.9921399338736341, "val_branch_mae": 53.29789733886719, "val_branch_corr": 0.6949235888890999, "sec": 770.7}
+{"epoch": 6, "train_loss": 0.02447580261168353, "val_mae": 55.94696044921875, "val_corr": 0.6049855207562023, "val_over_auc": 0.9917381943604424, "val_branch_mae": 49.91041564941406, "val_branch_corr": 0.726022897345955, "sec": 744.7}
+{"epoch": 7, "train_loss": 0.02306302037077673, "val_mae": 55.358299255371094, "val_corr": 0.6041975045070378, "val_over_auc": 0.9914290670403075, "val_branch_mae": 49.009674072265625, "val_branch_corr": 0.7435973909153043, "sec": 739.5}
+{"epoch": 8, "train_loss": 0.021201203978866205, "val_mae": 62.05057907104492, "val_corr": 0.6013407282656671, "val_over_auc": 0.9904582140505087, "val_branch_mae": 55.37773513793945, "val_branch_corr": 0.7542386442198756, "sec": 738.3}
+{"epoch": 9, "train_loss": 0.01830527232650114, "val_mae": 58.378395080566406, "val_corr": 0.5314918787477545, "val_over_auc": 0.9903971026033896, "val_branch_mae": 54.43219757080078, "val_branch_corr": 0.663544355286834, "sec": 737.7}
+{"epoch": 10, "train_loss": 0.01627640315474005, "val_mae": 54.19671630859375, "val_corr": 0.6037999827896725, "val_over_auc": 0.9906323081730576, "val_branch_mae": 48.377933502197266, "val_branch_corr": 0.740624772973329, "sec": 738.9}
+{"epoch": 11, "train_loss": 0.01342637905181941, "val_mae": 56.41360855102539, "val_corr": 0.5879624610429214, "val_over_auc": 0.989939081757456, "val_branch_mae": 48.25702667236328, "val_branch_corr": 0.7590012942299766, "sec": 736.9}
+{"epoch": 12, "train_loss": 0.01061878999346194, "val_mae": 54.5854606628418, "val_corr": 0.5982437586399173, "val_over_auc": 0.9906768292273161, "val_branch_mae": 50.98088836669922, "val_branch_corr": 0.72317282226513, "sec": 752.3}
+{"epoch": 13, "train_loss": 0.008452542809699301, "val_mae": 54.64167785644531, "val_corr": 0.60148778027626, "val_over_auc": 0.9899913729957125, "val_branch_mae": 49.52252197265625, "val_branch_corr": 0.7472181261723568, "sec": 756.6}
+{"epoch": 14, "train_loss": 0.006654469601442405, "val_mae": 54.11424255371094, "val_corr": 0.5991066681493867, "val_over_auc": 0.9900405141593753, "val_branch_mae": 48.8568229675293, "val_branch_corr": 0.7486904645749548, "sec": 753.6}
+{"epoch": 15, "train_loss": 0.005736842054559823, "val_mae": 54.12559127807617, "val_corr": 0.595303163631092, "val_over_auc": 0.9899579822050186, "val_branch_mae": 48.694393157958984, "val_branch_corr": 0.7480621102345273, "sec": 753.2}
+best val MAE 54.1 points -> ../runs/value_v3.pt
+2026-10-29 19:50:29 done (exit 0)
