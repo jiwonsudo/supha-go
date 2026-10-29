@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Mac jobs for the night of 2026-10-30 (about 5 hours). Run once from the repo root:
+# Mac jobs for the night of 2026-10-30 (about 6 hours, done by about 8:00). Run once from the repo root:
 #   caffeinate -i nohup bash cloud/night3.sh > night3.log 2>&1 &
 # Each step's output goes to python/<log>; this file only gets start/done lines.
 cd "$(dirname "$0")/../python"
@@ -26,5 +26,9 @@ step bench_ps bench_ps.log python -m suphago.bench --agent ps --policy ../runs/p
 # 4. more games for mcv 1-ply + v3 (seeds 30..99), so it has 100 like MC 2-ply (about 90 min)
 step bench_mcv1_v3_more bench_mcv1_v3_more.log python -m suphago.bench --agent mcv --model ../runs/value_v3.pt \
   --alpha 1 --risk 1 --games 70 --seed 30 --workers 10 --out bench_mcv1_v3_more.jsonl
+
+# 5. the policy search with value_v4 instead (mcv 2-ply + v4 had the highest median) (about 70 min)
+step bench_ps_v4 bench_ps_v4.log python -m suphago.bench --agent ps --policy ../runs/policy_v1.pt \
+  --model ../runs/value_v4.pt --alpha 1 --risk 1 --games 30 --workers 10 --out bench_ps_v4.jsonl
 
 echo "$(date '+%F %T') night3 jobs finished"
