@@ -68,15 +68,22 @@ def main():
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--seed", type=int, default=500000, help="first branch seed (future fruits, candidates)")
     p.add_argument("--out", required=True)
+    p.add_argument("--resume", action="store_true", help="skip branches already in --out (same --seed and --data)")
     args = p.parse_args()
 
     boards = pick_boards(args.data, args.branches, args.seed)
     print(f"{len(boards)} boards picked", flush=True)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+    done_seeds = set()
+    if args.resume:
+        # boards are picked in the same order for the same seed, so seed k is always board k
+        done_seeds = {g["seed"] for g in load_games(out)}
+        print(f"resume: {len(done_seeds)} branches already done", flush=True)
     jobs: queue.Queue = queue.Queue()
     for k, b in enumerate(boards):
-        jobs.put((args.seed + k, b))
+        if args.seed + k not in done_seeds:
+            jobs.put((args.seed + k, b))
     stamp = time.strftime("%Y%m%d-%H%M%S")
     done, lock = [0], threading.Lock()
 
