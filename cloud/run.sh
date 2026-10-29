@@ -6,7 +6,8 @@
 #   bash cloud/run.sh fetch      download results (starts the VM again if it shut itself down)
 #   bash cloud/run.sh delete     delete the VM (do this when you are done; a stopped VM still bills its disk)
 #
-# The jobs to run are in cloud/jobs.sh. When they finish, the VM shuts itself down so
+# The jobs to run are in cloud/jobs.sh (or SUPHAGO_JOBS=cloud/other.sh). SUPHAGO_DATA="mc1 mc2"
+# uploads those data/ folders too. When they finish, the VM shuts itself down so
 # it stops billing CPU time. Needs gcloud logged in with a project set.
 set -euo pipefail
 
@@ -14,6 +15,8 @@ NAME="${SUPHAGO_VM:-suphago-worker}"
 MACHINE="${SUPHAGO_MACHINE:-c2d-highcpu-32}"
 SPOT="${SUPHAGO_SPOT:-0}"   # 1 = spot VM (about a third of the price, but Google can take it back mid-run)
 ZONES="${SUPHAGO_ZONES:-asia-northeast3-a asia-northeast3-b asia-northeast3-c}"
+JOBS="${SUPHAGO_JOBS:-cloud/jobs.sh}"
+DATA="${SUPHAGO_DATA:-}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 STATE="$ROOT/cloud/.zone"
 
@@ -22,8 +25,7 @@ ssh_vm() { gcloud compute ssh "$NAME" --zone "$(zone)" --quiet --command "$1"; }
 
 cmd_start() {
   [ -n "$(gcloud config get-value project 2>/dev/null)" ] || { echo "gcloud config set project 프로젝트ID 를 먼저 실행하세요."; exit 1; }
-  [ -f "$ROOT/runs/value_mc1.pt" ] || { echo "runs/value_mc1.pt 가 없습니다."; exit 1; }
-  [ -f "$ROOT/runs/value_h30.pt" ] || { echo "runs/value_h30.pt 가 없습니다. 맥에서 학습이 끝난 뒤 실행하세요."; exit 1; }
+  [ -f "$ROOT/$JOBS" ] || { echo "$JOBS 가 없습니다."; exit 1; }
 
   gcloud services enable compute.googleapis.com --quiet
   local created="" model=()
@@ -49,19 +51,23 @@ cmd_start() {
   echo "코드와 모델 올리는 중..."
   local tgz; tgz="$(mktemp -t suphago).tgz"
   COPYFILE_DISABLE=1 tar -C "$ROOT" --exclude engine/node_modules --exclude data --exclude .venv --exclude .git \
-      --exclude 'replays/*.json' -czf "$tgz" .
+      --exclude 'replays/*.json' --exclude 'cloud/results-*' -czf "$tgz" .
+  # data folders go in a second archive (the exclude above would also drop them)
+  local dirs=""; for d in $DATA; do dirs="$dirs data/$d"; done
+  if [ -n "$dirs" ]; then COPYFILE_DISABLE=1 tar -C "$ROOT" -czf "$tgz.data" $dirs; else tar -czf "$tgz.data" -T /dev/null; fi
   gcloud compute scp "$tgz" "$NAME:~/suphago.tgz" --zone "$(zone)" --quiet
-  rm -f "$tgz"
+  gcloud compute scp "$tgz.data" "$NAME:~/suphago-data.tgz" --zone "$(zone)" --quiet
+  rm -f "$tgz" "$tgz.data"
 
   echo "설치하고 작업 시작..."
   ssh_vm 'set -e
-    mkdir -p ~/supha-go && tar -xzf ~/suphago.tgz -C ~/supha-go
+    mkdir -p ~/supha-go && tar -xzf ~/suphago.tgz -C ~/supha-go && tar -xzf ~/suphago-data.tgz -C ~/supha-go
     sudo apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq nodejs npm python3-pip >/dev/null
     cd ~/supha-go/engine && npm ci --silent
     pip3 install --break-system-packages -q numpy
     pip3 install --break-system-packages -q torch --index-url https://download.pytorch.org/whl/cpu
     node test/golden.js
-    cd ~/supha-go && nohup bash cloud/jobs.sh > ~/jobs.log 2>&1 < /dev/null &
+    cd ~/supha-go && nohup bash '"$JOBS"' > ~/jobs.log 2>&1 < /dev/null &
     sleep 2; echo started'
   echo
   echo "시작했습니다. 진행 확인: bash cloud/run.sh status"
