@@ -122,6 +122,36 @@ def big_bonus(r: dict, radius, pair: float, wm: float) -> float:
     return v
 
 
+def shape_bonus(r: dict, radius, chain: float, inv: float) -> float:
+    """Board-shape terms that experiment 9 found related to how a game goes, on the board
+    at the end of the look-ahead: +chain per pair of touching fruits one size apart
+    (type 4 and up), -inv per fruit sitting on top of a fruit two or more sizes smaller."""
+    if not (chain or inv) or r["isOver"]:
+        return 0.0
+    end = r
+    s = r.get("second")
+    if s is not None:
+        if s.get("isOver"):
+            return 0.0
+        if "state" in s:
+            end = s
+    st = end.get("state")
+    if st is None:
+        return 0.0
+    fs = st.fruits
+    links = flips = 0
+    for a in fs:
+        for b in fs:
+            if a is b:
+                continue
+            if chain and b.type == a.type + 1 and a.type >= 4:
+                if math.hypot(a.x - b.x, a.y - b.y) - radius[a.type] - radius[b.type] < 15:
+                    links += 1
+            if inv and b.y < a.y and b.type > a.type + 1 and abs(b.x - a.x) < radius[a.type] + radius[b.type] * 0.5:
+                flips += 1
+    return chain * links - inv * flips
+
+
 class MonteCarloAgent:
     """Simulate candidate drops and pick the best by the heuristic.
 
@@ -130,12 +160,14 @@ class MonteCarloAgent:
     plies: 1 or 2 (second ply drops the known next fruit at one random x).
     """
 
-    def __init__(self, radius, n=50, mode="combined", plies=1, frames=120, seed=0, pair=0.0, wm=0.0, s2=1):
+    def __init__(self, radius, n=50, mode="combined", plies=1, frames=120, seed=0, pair=0.0, wm=0.0, s2=1, chain=0.0, inv=0.0):
         self.radius, self.n, self.mode, self.plies, self.frames = radius, n, mode, plies, frames
         self.pair, self.wm = pair, wm
+        self.chain, self.inv = chain, inv   # board-shape terms (shape_bonus)
         self.s2 = s2   # 2-ply: random second drops tried per first drop (the best one counts)
         self.rng = random.Random(seed)
-        tag = "".join([f"-s{s2}" if s2 > 1 else "", f"-p{pair:g}" if pair else "", f"-w{wm:g}" if wm else ""])
+        tag = "".join([f"-s{s2}" if s2 > 1 else "", f"-p{pair:g}" if pair else "", f"-w{wm:g}" if wm else "",
+                       f"-c{chain:g}" if chain else "", f"-i{inv:g}" if inv else ""])
         self.name = f"mc-{mode}-{plies}ply-{n}{tag}"
 
     def candidates(self, game: Game) -> list[float]:
@@ -158,8 +190,9 @@ class MonteCarloAgent:
         firsts = [x for x in xs for _ in range(k)]
         if self.plies == 2:
             second = self.second_candidates(game, len(firsts))
-        results = game.evaluate(firsts, frames=self.frames, second_xs=second, with_state=bool(self.pair))
-        flat = [heuristic(r) + big_bonus(r, self.radius, self.pair, self.wm) for r in results]
+        results = game.evaluate(firsts, frames=self.frames, second_xs=second, with_state=bool(self.pair or self.chain or self.inv))
+        flat = [heuristic(r) + big_bonus(r, self.radius, self.pair, self.wm)
+                + shape_bonus(r, self.radius, self.chain, self.inv) for r in results]
         scores = [max(flat[i * k:(i + 1) * k]) for i in range(len(xs))]
         best = max(scores)
         # kept for the replay viewer; does not affect the choice
