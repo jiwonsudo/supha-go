@@ -32,6 +32,7 @@ def main():
     ap.add_argument("--seeds", type=int, nargs=2, default=[0, 49], help="first and last seed (inclusive)")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--hz", type=int, default=60)
+    ap.add_argument("--wait", type=int, default=0, help="extra frames before each next drop (see bench --wait)")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -69,8 +70,8 @@ def main():
                 except queue.Empty:
                     return
                 agent = MonteCarloAgent(radius, n=n, plies=p, s2=s2, seed=seed)
-                r = play(eng, agent, seed, args.hz, 100000)
-                r["agent"], r["config"] = agent.name, c
+                r = play(eng, agent, seed, args.hz, 100000, args.wait)
+                r["agent"], r["config"], r["wait"] = agent.name, c, args.wait
                 with lock:
                     count[0] += 1
                     with open(out, "a") as f:

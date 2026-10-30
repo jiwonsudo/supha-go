@@ -48,12 +48,12 @@ def make_agent(args, radius, seed):
     raise SystemExit(f"unknown agent {args.agent}")
 
 
-def play(engine: Engine, agent, seed: int, hz: int, max_turns: int):
+def play(engine: Engine, agent, seed: int, hz: int, max_turns: int, wait: int = 0):
     g = engine.new_game(seed=seed, hz=hz)
     turns = 0
     t0 = time.time()
     while not g.state.is_over and turns < max_turns:
-        g.turn(agent.act(g))
+        g.turn(agent.act(g), wait)
         turns += 1
     g.free()
     return {"seed": seed, "score": g.state.score, "turns": turns, "sec": round(time.time() - t0, 1),
@@ -88,6 +88,8 @@ def main():
     p.add_argument("--games", type=int, default=30)
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--hz", type=int, default=60)
+    p.add_argument("--wait", type=int, default=0,
+                   help="extra frames to wait after the drop cooldown (36 frames at 60Hz) before the next drop")
     p.add_argument("--seed", type=int, default=0, help="first game seed")
     p.add_argument("--max-turns", type=int, default=100000)
     p.add_argument("--out", default=None, help="append per-game results (jsonl)")
@@ -106,7 +108,7 @@ def main():
                 except queue.Empty:
                     return
                 agent = make_agent(args, eng.info["radius"], seed)
-                r = play(eng, agent, seed, args.hz, args.max_turns)
+                r = play(eng, agent, seed, args.hz, args.max_turns, args.wait)
                 r["agent"] = agent.name
                 with lock:
                     results.append(r)
