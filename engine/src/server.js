@@ -3,6 +3,7 @@
 // Python drives several of these processes in parallel (see python/suphago/bridge.py).
 const readline = require('readline');
 const { SuikaGame, RADIUS, MERGE_SCORE, WIDTH, HEIGHT, MARGIN_X, DROP_Y } = require('./suika');
+const { rollout } = require('./rollout');
 
 const games = new Map();
 let nextHandle = 1;
@@ -175,6 +176,7 @@ const handlers = {
     return { id: h };
   },
   free: ({ id }) => ({ ok: games.delete(id) }),
+  rollout: ({ id, xs, count, length, k, frames, seed }) => rollout(get(id), xs, { count, length, k, frames, seed }),
   evaluate: ({ id, xs, frames = 120, secondXs = null, withState = false }) => evaluate(get(id), xs, frames, secondXs, withState),
 };
 

@@ -113,6 +113,14 @@ class Game:
         self._set(r["state"])
         return r["gain"], r["frames"]
 
+    def rollout(self, xs, count: int = 8, length: int = 50, k: int = 0, frames: int = 36, seed: int = 1):
+        """For each x: drop there, then play up to `length` moves with the engine's fast
+        policy on fresh random fruits, `count` times. Returns dicts with mean gain, share
+        of rollouts that ended the game (over), mean moves and share that cleared two
+        watermelons (cleared)."""
+        return self.engine.call("rollout", id=self.id, xs=[float(x) for x in xs], count=count,
+                                length=length, k=k, frames=frames, seed=int(seed))
+
     def evaluate(self, xs, frames: int = 120, second_xs=None, with_state: bool = False):
         kw = {"id": self.id, "xs": [float(x) for x in xs], "frames": frames}
         if second_xs is not None:

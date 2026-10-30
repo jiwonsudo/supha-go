@@ -46,19 +46,26 @@ def make_agent(args, radius, seed):
             raise SystemExit("--model is required for --agent value")
         return ValueAgent(radius, args.model, n=args.n, mode=args.mode, device=args.device, seed=seed,
                           risk=getattr(args, "risk", 0.0), blend=getattr(args, "blend", 0.0))
+    if args.agent == "ro":
+        from .rollout_agent import RolloutAgent
+        return RolloutAgent(radius, n=args.n, top=args.top, count=args.count, length=args.length,
+                            policy_k=args.policy_k, death=args.death, seed=seed)
     raise SystemExit(f"unknown agent {args.agent}")
 
 
 def play(engine: Engine, agent, seed: int, hz: int, max_turns: int, wait: int = 0):
     g = engine.new_game(seed=seed, hz=hz)
-    turns = 0
+    turns = clears = 0
     t0 = time.time()
     while not g.state.is_over and turns < max_turns:
-        g.turn(agent.act(g), wait)
+        melons = sum(1 for f in g.state.fruits if f.type == 10)
+        gain = g.turn(agent.act(g), wait)
         turns += 1
+        if gain >= 66 and sum(1 for f in g.state.fruits if f.type == 10) < melons:
+            clears += 1   # two watermelons merged and vanished
     g.free()
     return {"seed": seed, "score": g.state.score, "turns": turns, "sec": round(time.time() - t0, 1),
-            "maxFruit": max((f.type for f in g.state.fruits), default=-1)}
+            "maxFruit": max((f.type for f in g.state.fruits), default=-1), "clears": clears}
 
 
 def quantile(xs, q):
@@ -70,7 +77,12 @@ def quantile(xs, q):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--agent", default="random", choices=["random", "typematch", "mc", "value", "mcv", "ps"])
+    p.add_argument("--agent", default="random", choices=["random", "typematch", "mc", "value", "mcv", "ps", "ro"])
+    p.add_argument("--top", type=int, default=10, help="ro: drops kept from the 1-ply search for rollouts")
+    p.add_argument("--count", type=int, default=8, help="ro: rollouts per kept drop")
+    p.add_argument("--length", type=int, default=50, help="ro: moves per rollout")
+    p.add_argument("--policy-k", type=int, default=0, help="ro: rollout policy (0 = typematch, k = k-candidate greedy)")
+    p.add_argument("--death", type=float, default=1000.0, help="ro: points lost per unit share of rollouts that end the game")
     p.add_argument("--policy", default=None, help="ps: policy network checkpoint")
     p.add_argument("--k1", type=int, default=10, help="ps: first drops from the policy")
     p.add_argument("--k2", type=int, default=6, help="ps: second drops per first drop")
