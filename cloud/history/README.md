@@ -14,3 +14,5 @@
 | `jobs_selfplay.sh` | 클라우드 | 10-30 밤 | 자가학습 기보 200판, MC 2수·mcv 2수 추가 판 | 12 |
 | `night3.sh` | 맥 | 10-30 밤 | 정책망 학습, ps 탐색 벤치, mcv 1수 추가 판 | 11, 12 |
 | `jobs_sweep.sh`, `sweep_mac.sh` | 둘 다 | 10-30 | 탐색량 스윕을 맥과 나눠 돌리는 판 (쓰지 않음, `jobs_sweep_all.sh`로 대체) | 13 |
+| `jobs_s2_after.sh` | 클라우드 | 10-30 | 실험 14를 실험 13 VM에 이어 붙임 (`jobs_takeover.sh`가 넘겨받음) | 14 |
+| `wait_mac.sh` | 맥 | 10-30 | 기다렸다 두기 벤치 | 15 |
