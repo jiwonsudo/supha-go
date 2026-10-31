@@ -201,12 +201,13 @@ class SuikaGame2 {
         return;
       }
     }
+    // scheduler: actions/tweens (merge pull, scale-in) run before the physics step
+    this._runTimers();
     this.world.Step(STEP, 10, 10);
     this.ignore = null;
     const todo = this.pending; this.pending = [];
     for (const fn of todo) fn();
     this.frame++;
-    this._runTimers();
     if (this.blockFrames > 0 && --this.blockFrames === 0) this.score += 100;
     if (!this.canDrop) {
       if (this.waitFrames > 0) this.waitFrames--;
