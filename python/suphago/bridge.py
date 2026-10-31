@@ -7,12 +7,16 @@ released while waiting on the pipe.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SERVER = ROOT / "engine" / "src" / "server.js"
+# SUPHAGO_ENGINE=2 runs the contest-site engine (engine2/, Cocos + Box2D) instead of the
+# playsuikagame.com one (engine/, Phaser + Matter).
+ENGINE_DIR = ROOT / ("engine2" if os.environ.get("SUPHAGO_ENGINE") == "2" else "engine")
+SERVER = ENGINE_DIR / "src" / "server.js"
 
 
 class EngineError(RuntimeError):
@@ -27,9 +31,12 @@ class Engine:
             stdout=subprocess.PIPE,
             text=True,
             bufsize=1,
-            cwd=str(ROOT / "engine"),
+            cwd=str(ENGINE_DIR),
         )
         self.info = self.call("info")
+        if "walls" in self.info:   # engine2: box walls in its own coordinates
+            from . import agents
+            agents.WALL_L, agents.WALL_R = map(float, self.info["walls"])
 
     def call(self, cmd: str, **kw):
         kw["cmd"] = cmd
