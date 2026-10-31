@@ -25,7 +25,8 @@ def make_agent(args, radius, seed):
     if args.agent == "mc":
         return MonteCarloAgent(radius, n=args.n, mode=args.mode, plies=args.plies, frames=args.frames, seed=seed, s2=getattr(args, "s2", 1),
                                pair=getattr(args, "pair", 0.0), wm=getattr(args, "wm", 0.0),
-                               chain=getattr(args, "chain", 0.0), inv=getattr(args, "inv", 0.0))
+                               chain=getattr(args, "chain", 0.0), inv=getattr(args, "inv", 0.0),
+                               small=getattr(args, "small", 0.0), long=getattr(args, "long", 0.0))
     if args.agent == "mcv":
         from .value_agent import MCValueAgent
         if not args.model:
@@ -95,6 +96,8 @@ def main():
     p.add_argument("--wm", type=float, default=0.0, help="mc/mcv: bonus weight for big merges (melon, watermelon, clear)")
     p.add_argument("--chain", type=float, default=0.0, help="mc: points per touching pair one size apart (type 4+)")
     p.add_argument("--inv", type=float, default=0.0, help="mc: penalty per fruit on top of one 2+ sizes smaller")
+    p.add_argument("--small", type=float, default=0.0, help="mc: points per touching pair one size apart below type 4")
+    p.add_argument("--long", type=float, default=0.0, help="mc: points per fruit in the longest touching chain of growing sizes")
     p.add_argument("--mode", default="combined", choices=["random", "steps", "combined"])
     p.add_argument("--plies", type=int, default=1)
     p.add_argument("--s2", type=int, default=1, help="mc 2-ply: random second drops per first drop")

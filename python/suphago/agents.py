@@ -122,11 +122,14 @@ def big_bonus(r: dict, radius, pair: float, wm: float) -> float:
     return v
 
 
-def shape_bonus(r: dict, radius, chain: float, inv: float) -> float:
-    """Board-shape terms that experiment 9 found related to how a game goes, on the board
-    at the end of the look-ahead: +chain per pair of touching fruits one size apart
-    (type 4 and up), -inv per fruit sitting on top of a fruit two or more sizes smaller."""
-    if not (chain or inv) or r["isOver"]:
+def shape_bonus(r: dict, radius, chain: float, inv: float, small: float = 0.0, long: float = 0.0) -> float:
+    """Board-shape terms on the board at the end of the look-ahead (experiments 9, 16, 19).
+    chain: + per pair of touching fruits one size apart, type 4 and up
+    small: + per such pair below type 4 (cherry..orange next to the next size)
+    inv:   - per fruit sitting on top of a fruit two or more sizes smaller
+    long:  + per fruit in the longest chain of touching fruits, each one size bigger than the last
+    """
+    if not (chain or inv or small or long) or r["isOver"]:
         return 0.0
     end = r
     s = r.get("second")
@@ -139,17 +142,28 @@ def shape_bonus(r: dict, radius, chain: float, inv: float) -> float:
     if st is None:
         return 0.0
     fs = st.fruits
-    links = flips = 0
-    for a in fs:
-        for b in fs:
-            if a is b:
+    n = len(fs)
+    links = smalls = flips = 0
+    up = [[] for _ in range(n)]
+    for i, a in enumerate(fs):
+        for j, b in enumerate(fs):
+            if i == j:
                 continue
-            if chain and b.type == a.type + 1 and a.type >= 4:
-                if math.hypot(a.x - b.x, a.y - b.y) - radius[a.type] - radius[b.type] < 15:
+            if b.type == a.type + 1 and math.hypot(a.x - b.x, a.y - b.y) - radius[a.type] - radius[b.type] < 15:
+                up[i].append(j)
+                if a.type >= 4:
                     links += 1
+                else:
+                    smalls += 1
             if inv and b.y < a.y and b.type > a.type + 1 and abs(b.x - a.x) < radius[a.type] + radius[b.type] * 0.5:
                 flips += 1
-    return chain * links - inv * flips
+    longest = 0
+    if long:
+        depth = [0] * n
+        for i in sorted(range(n), key=lambda k: -fs[k].type):   # bigger fruits first, so up[] is done
+            depth[i] = 1 + max((depth[j] for j in up[i]), default=0)
+        longest = max(depth, default=0)
+    return chain * links + small * smalls - inv * flips + long * longest
 
 
 class MonteCarloAgent:
@@ -160,14 +174,15 @@ class MonteCarloAgent:
     plies: 1 or 2 (second ply drops the known next fruit at one random x).
     """
 
-    def __init__(self, radius, n=50, mode="combined", plies=1, frames=120, seed=0, pair=0.0, wm=0.0, s2=1, chain=0.0, inv=0.0):
+    def __init__(self, radius, n=50, mode="combined", plies=1, frames=120, seed=0, pair=0.0, wm=0.0, s2=1, chain=0.0, inv=0.0, small=0.0, long=0.0):
         self.radius, self.n, self.mode, self.plies, self.frames = radius, n, mode, plies, frames
         self.pair, self.wm = pair, wm
-        self.chain, self.inv = chain, inv   # board-shape terms (shape_bonus)
+        self.chain, self.inv, self.small, self.long = chain, inv, small, long   # board-shape terms (shape_bonus)
         self.s2 = s2   # 2-ply: random second drops tried per first drop (the best one counts)
         self.rng = random.Random(seed)
         tag = "".join([f"-s{s2}" if s2 > 1 else "", f"-p{pair:g}" if pair else "", f"-w{wm:g}" if wm else "",
-                       f"-c{chain:g}" if chain else "", f"-i{inv:g}" if inv else ""])
+                       f"-c{chain:g}" if chain else "", f"-i{inv:g}" if inv else "",
+                       f"-sm{small:g}" if small else "", f"-l{long:g}" if long else "", f"-f{frames}" if frames != 120 else ""])
         self.name = f"mc-{mode}-{plies}ply-{n}{tag}"
 
     def candidates(self, game: Game) -> list[float]:
@@ -190,9 +205,9 @@ class MonteCarloAgent:
         firsts = [x for x in xs for _ in range(k)]
         if self.plies == 2:
             second = self.second_candidates(game, len(firsts))
-        results = game.evaluate(firsts, frames=self.frames, second_xs=second, with_state=bool(self.pair or self.chain or self.inv))
+        results = game.evaluate(firsts, frames=self.frames, second_xs=second, with_state=bool(self.pair or self.chain or self.inv or self.small or self.long))
         flat = [heuristic(r) + big_bonus(r, self.radius, self.pair, self.wm)
-                + shape_bonus(r, self.radius, self.chain, self.inv) for r in results]
+                + shape_bonus(r, self.radius, self.chain, self.inv, self.small, self.long) for r in results]
         scores = [max(flat[i * k:(i + 1) * k]) for i in range(len(xs))]
         best = max(scores)
         # kept for the replay viewer; does not affect the choice
