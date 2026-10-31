@@ -1,0 +1,60 @@
+{"seed": 9, "score": 3150, "turns": 299, "sec": 6329.2, "maxFruit": 9, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 12, "score": 2580, "turns": 297, "sec": 6408.3, "maxFruit": 9, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 4, "score": 2900, "turns": 272, "sec": 6619.1, "maxFruit": 9, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 8, "score": 4141, "turns": 406, "sec": 7348.4, "maxFruit": 10, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 10, "score": 4089, "turns": 392, "sec": 7451.3, "maxFruit": 10, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 11, "score": 4050, "turns": 405, "sec": 7542.1, "maxFruit": 10, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 6, "score": 3962, "turns": 375, "sec": 7618.5, "maxFruit": 10, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 1, "score": 4012, "turns": 400, "sec": 8087.8, "maxFruit": 10, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 13, "score": 3823, "turns": 385, "sec": 8161.1, "maxFruit": 10, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 3, "score": 4202, "turns": 402, "sec": 8316.8, "maxFruit": 10, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 7, "score": 4756, "turns": 433, "sec": 8422.6, "maxFruit": 10, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 5, "score": 4116, "turns": 410, "sec": 8834.9, "maxFruit": 10, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 15, "score": 2856, "turns": 293, "sec": 3790.7, "maxFruit": 9, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 2, "score": 7094, "turns": 657, "sec": 10280.1, "maxFruit": 9, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3"}
+{"seed": 4, "score": 3244, "turns": 301, "sec": 20788.2, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 2, "score": 3422, "turns": 341, "sec": 21849.1, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 7, "score": 3179, "turns": 307, "sec": 23556.8, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 5, "score": 3460, "turns": 355, "sec": 24321.5, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 8, "score": 3860, "turns": 379, "sec": 24627.7, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 3, "score": 3523, "turns": 337, "sec": 25062.3, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 21, "score": 3486, "turns": 356, "sec": 25234.6, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 27, "score": 3204, "turns": 344, "sec": 25571.9, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 19, "score": 3813, "turns": 366, "sec": 25869.7, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 22, "score": 4187, "turns": 418, "sec": 26055.1, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 15, "score": 4158, "turns": 389, "sec": 26435.0, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 17, "score": 3309, "turns": 341, "sec": 26676.8, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 16, "score": 3793, "turns": 359, "sec": 26867.4, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 25, "score": 4548, "turns": 429, "sec": 26949.2, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 9, "score": 3800, "turns": 356, "sec": 27098.4, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 26, "score": 4164, "turns": 388, "sec": 27118.0, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 20, "score": 4269, "turns": 404, "sec": 27248.7, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 11, "score": 4130, "turns": 408, "sec": 27261.8, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 18, "score": 3203, "turns": 324, "sec": 27517.6, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 14, "score": 3734, "turns": 364, "sec": 27832.2, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 6, "score": 3898, "turns": 369, "sec": 27994.2, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 23, "score": 4390, "turns": 418, "sec": 28007.4, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 14, "score": 5082, "turns": 476, "sec": 6198.4, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 16, "score": 3865, "turns": 356, "sec": 5045.7, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 29, "score": 4931, "turns": 467, "sec": 28761.0, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 10, "score": 4996, "turns": 458, "sec": 28926.5, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 22, "score": 2876, "turns": 310, "sec": 3517.1, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 17, "score": 3342, "turns": 341, "sec": 5508.5, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 21, "score": 3178, "turns": 322, "sec": 4334.0, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 19, "score": 3230, "turns": 321, "sec": 4861.3, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 20, "score": 3116, "turns": 310, "sec": 4799.5, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 25, "score": 2902, "turns": 304, "sec": 3868.2, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 18, "score": 3881, "turns": 371, "sec": 5929.0, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 29, "score": 3844, "turns": 372, "sec": 3566.3, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 24, "score": 3199, "turns": 322, "sec": 4403.4, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 23, "score": 3138, "turns": 326, "sec": 4867.0, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 28, "score": 2922, "turns": 302, "sec": 3964.2, "maxFruit": 9, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 28, "score": 5250, "turns": 487, "sec": 31154.0, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 24, "score": 3556, "turns": 351, "sec": 31789.1, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 0, "score": 6986, "turns": 656, "sec": 11023.6, "maxFruit": 9, "clears": 1, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 12, "score": 4944, "turns": 472, "sec": 32602.9, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 13, "score": 3690, "turns": 375, "sec": 32825.4, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 26, "score": 5031, "turns": 459, "sec": 6341.1, "maxFruit": 10, "clears": 0, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 27, "score": 7350, "turns": 709, "sec": 8597.3, "maxFruit": 9, "clears": 1, "agent": "mc-combined-2ply-25-s3", "config": "2:25:3", "wait": 0}
+{"seed": 1, "score": 7918, "turns": 746, "sec": 38098.1, "maxFruit": 10, "clears": 1, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
+{"seed": 0, "score": 7989, "turns": 730, "sec": 38759.1, "maxFruit": 10, "clears": 1, "agent": "mc-combined-2ply-50-s6", "config": "2:50:6", "wait": 0}
