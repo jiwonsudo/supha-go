@@ -27,7 +27,9 @@
         if (gm && w.cc.winSize.height > 1000) {
           w.cc.game.pause();
           w.cc.director.calculateDeltaTime = function () { this._deltaTime = 1 / 60; };
-          for (let k = 0; k < 30; k++) w.cc.director.mainLoop(w.performance.now());
+          // (timers are throttled in a hidden page, so step until the fruit appears instead of
+          // a few frames per poll)
+          for (let k = 0; k < 600 && !gm.getComponent('GameFunction').targetFruit; k++) w.cc.director.mainLoop(w.performance.now());
         }
       } catch (e) { /* still loading */ }
       await sleep(500);
