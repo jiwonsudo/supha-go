@@ -91,7 +91,9 @@
     AP.moves++;
     AP.log.push({ m: AP.moves, cur, x: +c.x.toFixed(1), best: c.best, ms: Math.round(performance.now() - t0), score: PI.score });
     // whole-game record (evidence): move, current, next, drop x (canvas px), score before, fruits on the board
-    AP.record.push([AP.moves, cur, g.next, +c.x.toFixed(1), PI.score, fs.length]);
+    const tc = new Array(11).fill(0); for (const f of fs) tc[f.type]++;
+    AP.record.push([AP.moves, cur, g.next, +c.x.toFixed(1), PI.score, fs.length, tc.join('')]);
+    AP.lastBoard = fs.map((f) => [f.type, +(f.x * PTM).toFixed(1), +(f.y * PTM).toFixed(1)]);
     if (AP.log.length > 50) AP.log.shift();
     return true;
   }
@@ -100,8 +102,9 @@
     // let the page run normally: end() adds the end bonus with real-time timeouts, then shows the result
     // what the board looked like at game over, and whether the engine saw it coming
     const fsOver = read();
+    const lastBoard = AP.lastBoard;
     const endInfo = { bonus: fsOver.reduce((t, f) => t + f.type + 1, 0), board: fsOver.map((f) => [f.type, +(f.x * PTM).toFixed(1), +(f.y * PTM).toFixed(1), f.inBox ? 1 : 0, f.touched ? 1 : 0]),
-      lastLog: AP.log.slice(-5), lineY: cc.find('Canvas/lineNode') && cc.find('Canvas/lineNode').y };
+      lastLog: AP.log.slice(-5), lineY: cc.find('Canvas/lineNode') && cc.find('Canvas/lineNode').y, lastBoard };
     if (AP.pending) {
       const pr = AP.pending; const sim = pr.g; const n = frames - pr.f0;
       for (let k = 0; k < n + 240 && !sim.isOver; k++) sim.stepFrame();
