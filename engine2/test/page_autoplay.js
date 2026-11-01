@@ -26,6 +26,12 @@
   const step = () => cc.director.mainLoop(performance.now());
   const fixedDt = function () { this._deltaTime = 1 / 60; };
   const origDt = cc.director.calculateDeltaTime;
+  // Cocos resumes the game by itself when the page becomes visible again (cc.game EVENT_SHOW).
+  // While the AI steps frames by hand that would run the game twice, so resume is blocked
+  // until the game is over.
+  const origResume = cc.game.resume.bind(cc.game);
+  const hold = () => { cc.game.resume = () => {}; cc.game.pause(); };
+  const release = () => { cc.game.resume = origResume; cc.director.calculateDeltaTime = origDt; origResume(); };
 
   const read = () => {
     const cw = canvas().convertToWorldSpaceAR(cc.v2(0, 0));
@@ -82,13 +88,12 @@
 
   function finish() {
     // let the page run normally: end() adds the end bonus with real-time timeouts, then shows the result
-    cc.director.calculateDeltaTime = origDt;
-    cc.game.resume();
+    release();
     const startScore = PI.score;
     setTimeout(() => {
       const shown = document.getElementById('ThisGameScoreResult');
       AP.games.push({ end: new Date().toISOString(), moves: AP.moves, scoreAtOver: startScore, final: PI.score,
-        display: shown ? +(shown.textContent || '').trim() || null : null, winH: cc.winSize.height, opts: AP.opts });
+        display: shown ? +(shown.textContent || '').trim() || null : null, winH: cc.winSize.height, opts: AP.opts, resumed: AP.resumed || 0 });
       try { localStorage.setItem('AP.games', JSON.stringify(AP.games)); } catch (e) { /* storage may be blocked */ }
       AP.running = false;
     }, 15000);
@@ -100,10 +105,11 @@
     AP.moves = 0;
     AP.record = [];
     AP.started = new Date().toISOString();
-    cc.game.pause();
+    hold();
     cc.director.calculateDeltaTime = fixedDt;
     const loop = () => {
       if (!AP.running) return;
+      if (!cc.game.isPaused()) { AP.resumed = (AP.resumed || 0) + 1; cc.game.pause(); }
       let ok = true;
       try { ok = move(); } catch (e) { AP.error = String(e && e.stack); ok = false; }
       if (ok && !over()) setTimeout(loop, 0);
@@ -112,6 +118,6 @@
     setTimeout(loop, 0);
     return 'started';
   };
-  AP.stop = () => { AP.running = false; cc.director.calculateDeltaTime = origDt; cc.game.resume(); return 'stopped'; };
+  AP.stop = () => { AP.running = false; release(); return 'stopped'; };
   return 'ready';
 })();
