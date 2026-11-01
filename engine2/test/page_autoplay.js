@@ -63,7 +63,7 @@
     if (over() || !g0.targetFruit) return !over();
     const cur = g0.targetFruit.getComponent('fruitData').fruitNumber;
     const g = SuikaGame2.restore({
-      g: { hz: 60, winH: cc.winSize.height, score: 0, isOver: false, frame: 0, drops: 10, current: cur, next: window.next, canDrop: true,
+      g: { hz: 60, winH: cc.winSize.height, score: 0, isOver: false, frame: 0, drops: 10, current: cur, next: (0, eval)('next'), canDrop: true,
         waitFrames: 0, blockFrames: 0, _rngState: (rng() * 4294967296) >>> 0 },
       fruits: fs, timers: [],
     });

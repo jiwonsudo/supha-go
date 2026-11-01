@@ -76,6 +76,7 @@ function score(g0, x, x2, { frames = 120, chain = 1, inv = 0.3 } = {}) {
 
 // Pick a drop x (world px) for game g. rng: () => [0, 1).
 function chooseMove(g, rng, { n = 50, frames = 120, chain = 1, inv = 0.3 } = {}) {
+  if (!(g.current >= 0 && g.current <= 10 && g.next >= 0 && g.next <= 10)) throw new Error(`bad current/next fruit: ${g.current}, ${g.next}`);
   const [lo, hi] = xRange(g.current);
   const xs = reachableMatches(g).slice(0, n);
   while (xs.length < n) xs.push(lo + rng() * (hi - lo));
