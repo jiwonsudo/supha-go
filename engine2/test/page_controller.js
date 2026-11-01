@@ -22,6 +22,13 @@
       try {
         const gm = w.cc && w.cc.find && w.cc.find('Canvas/gameManager');
         if (w.cc.winSize.height > 1000 && gm && gm.getComponent('GameFunction').targetFruit) return true;
+        // An iframe the browser treats as hidden never gets animation frames, so the game sits
+        // paused at frame 0. Step it by hand (1/60 s per frame, as the autoplay does).
+        if (gm && w.cc.winSize.height > 1000) {
+          w.cc.game.pause();
+          w.cc.director.calculateDeltaTime = function () { this._deltaTime = 1 / 60; };
+          for (let k = 0; k < 30; k++) w.cc.director.mainLoop(w.performance.now());
+        }
       } catch (e) { /* still loading */ }
       await sleep(500);
     }
