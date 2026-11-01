@@ -23,7 +23,8 @@
   const gf = () => cc.find('Canvas/gameManager').getComponent('GameFunction');
   const ic = () => cc.find('Canvas/inputNode').getComponent('InputController');
   const canvas = () => cc.find('Canvas');
-  const step = () => cc.director.mainLoop(performance.now());
+  let frames = 0;
+  const step = () => { frames++; cc.director.mainLoop(performance.now()); };
   const fixedDt = function () { this._deltaTime = 1 / 60; };
   const origDt = cc.director.calculateDeltaTime;
   // Cocos resumes the game by itself when the page becomes visible again (cc.game EVENT_SHOW).
@@ -56,7 +57,7 @@
   let r = (Date.now() >>> 0) || 1;
   const rng = () => ((r = (Math.imul(r, 1103515245) + 12345) >>> 0) / 4294967296);
 
-  const AP = window.AP = { games: [], moves: 0, running: false, opts: { n: 50, chain: 2, inv: 0.6 }, log: [], record: [] };
+  const AP = window.AP = { games: [], moves: 0, running: false, opts: { n: 50, chain: 2, inv: 0.6 }, log: [], record: [], diag: [] };
   AP.status = () => ({ running: AP.running, moves: AP.moves, score: PI.score, over: over(), games: AP.games });
 
   function move() {
@@ -67,6 +68,14 @@
     let w = 0, fs = read();
     while (!calm(fs) && !over() && w++ < 900) { step(); fs = read(); }
     if (over() || !g0.targetFruit) return !over();
+    // diagnostics: how did the engine's forecast of the previous move compare with what happened?
+    if (AP.pending) {
+      const pr = AP.pending; AP.pending = null;
+      const sim = pr.g; for (let k = 0; k < frames - pr.f0; k++) sim.stepFrame();
+      const cnt = (arr) => { const c = new Array(11).fill(0); for (const f of arr) c[f.type]++; return c; };
+      const a = cnt(fs), b = cnt(sim.fruits);
+      AP.diag.push({ m: AP.moves, frames: frames - pr.f0, real: fs.length, pred: sim.fruits.length, same: a.join() === b.join(), simOver: sim.isOver });
+    }
     const cur = g0.targetFruit.getComponent('fruitData').fruitNumber;
     const g = SuikaGame2.restore({
       g: { hz: 60, winH: cc.winSize.height, score: 0, isOver: false, frame: 0, drops: 10, current: cur, next: (0, eval)('next'), canDrop: true,
@@ -75,6 +84,7 @@
     });
     const t0 = performance.now();
     const c = chooseMove(g, rng, AP.opts);
+    const fc = g.clone(); fc.drop(c.x); AP.pending = { g: fc, f0: frames };
     g0.targetFruit.x = Math.max(-360 + 1, Math.min(360 - 1, c.x));
     ic().touchNum = 1;
     ic().onTouchEnd({});
@@ -104,6 +114,8 @@
     AP.running = true;
     AP.moves = 0;
     AP.record = [];
+    AP.diag = [];
+    AP.pending = null;
     AP.started = new Date().toISOString();
     hold();
     cc.director.calculateDeltaTime = fixedDt;
