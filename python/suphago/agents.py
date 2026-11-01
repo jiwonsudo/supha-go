@@ -166,6 +166,22 @@ def shape_bonus(r: dict, radius, chain: float, inv: float, small: float = 0.0, l
     return chain * links + small * smalls - inv * flips + long * longest
 
 
+def gain_bonus(r: dict, w: float) -> float:
+    """w x real points gained during the look-ahead, counting +100 for each watermelon made
+    (melon + melon; the contest game adds the 100 only after a 3 s animation)."""
+    if not w or r["isOver"]:
+        return 0.0
+    v = 0.0
+    for part in (r, r.get("second")):
+        if part is None:
+            continue
+        if part.get("isOver"):
+            return 0.0
+        m = part.get("merged") or [0] * 11
+        v += part.get("gain", 0) + 100 * m[9]
+    return w * v
+
+
 class MonteCarloAgent:
     """Simulate candidate drops and pick the best by the heuristic.
 
@@ -174,15 +190,16 @@ class MonteCarloAgent:
     plies: 1 or 2 (second ply drops the known next fruit at one random x).
     """
 
-    def __init__(self, radius, n=50, mode="combined", plies=1, frames=120, seed=0, pair=0.0, wm=0.0, s2=1, chain=0.0, inv=0.0, small=0.0, long=0.0):
+    def __init__(self, radius, n=50, mode="combined", plies=1, frames=120, seed=0, pair=0.0, wm=0.0, s2=1, chain=0.0, inv=0.0, small=0.0, long=0.0, gainw=0.0):
         self.radius, self.n, self.mode, self.plies, self.frames = radius, n, mode, plies, frames
         self.pair, self.wm = pair, wm
         self.chain, self.inv, self.small, self.long = chain, inv, small, long   # board-shape terms (shape_bonus)
+        self.gainw = gainw
         self.s2 = s2   # 2-ply: random second drops tried per first drop (the best one counts)
         self.rng = random.Random(seed)
         tag = "".join([f"-s{s2}" if s2 > 1 else "", f"-p{pair:g}" if pair else "", f"-w{wm:g}" if wm else "",
                        f"-c{chain:g}" if chain else "", f"-i{inv:g}" if inv else "",
-                       f"-sm{small:g}" if small else "", f"-l{long:g}" if long else "", f"-f{frames}" if frames != 120 else ""])
+                       f"-sm{small:g}" if small else "", f"-l{long:g}" if long else "", f"-g{gainw:g}" if gainw else "", f"-f{frames}" if frames != 120 else ""])
         self.name = f"mc-{mode}-{plies}ply-{n}{tag}"
 
     def candidates(self, game: Game) -> list[float]:
@@ -207,7 +224,8 @@ class MonteCarloAgent:
             second = self.second_candidates(game, len(firsts))
         results = game.evaluate(firsts, frames=self.frames, second_xs=second, with_state=bool(self.pair or self.chain or self.inv or self.small or self.long))
         flat = [heuristic(r) + big_bonus(r, self.radius, self.pair, self.wm)
-                + shape_bonus(r, self.radius, self.chain, self.inv, self.small, self.long) for r in results]
+                + shape_bonus(r, self.radius, self.chain, self.inv, self.small, self.long)
+                + gain_bonus(r, self.gainw) for r in results]
         scores = [max(flat[i * k:(i + 1) * k]) for i in range(len(xs))]
         best = max(scores)
         # kept for the replay viewer; does not affect the choice

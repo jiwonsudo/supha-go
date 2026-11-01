@@ -50,8 +50,9 @@ class Engine:
             raise EngineError(msg["error"])
         return msg["result"]
 
-    def new_game(self, seed: int = 0, hz: int = 60) -> "Game":
-        r = self.call("new", seed=seed, hz=hz)
+    def new_game(self, seed: int = 0, hz: int = 60, winH: float | None = None) -> "Game":
+        kw = {"winH": winH} if winH else {}   # engine2 only: page window height (box height)
+        r = self.call("new", seed=seed, hz=hz, **kw)
         return Game(self, r["id"], r["state"])
 
     def load_game(self, state: dict, seed: int = 0, hz: int = 60) -> "Game":

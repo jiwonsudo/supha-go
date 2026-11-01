@@ -26,7 +26,8 @@ def make_agent(args, radius, seed):
         return MonteCarloAgent(radius, n=args.n, mode=args.mode, plies=args.plies, frames=args.frames, seed=seed, s2=getattr(args, "s2", 1),
                                pair=getattr(args, "pair", 0.0), wm=getattr(args, "wm", 0.0),
                                chain=getattr(args, "chain", 0.0), inv=getattr(args, "inv", 0.0),
-                               small=getattr(args, "small", 0.0), long=getattr(args, "long", 0.0))
+                               small=getattr(args, "small", 0.0), long=getattr(args, "long", 0.0),
+                               gainw=getattr(args, "gain", 0.0))
     if args.agent == "mcv":
         from .value_agent import MCValueAgent
         if not args.model:
@@ -54,8 +55,8 @@ def make_agent(args, radius, seed):
     raise SystemExit(f"unknown agent {args.agent}")
 
 
-def play(engine: Engine, agent, seed: int, hz: int, max_turns: int, wait: int = 0):
-    g = engine.new_game(seed=seed, hz=hz)
+def play(engine: Engine, agent, seed: int, hz: int, max_turns: int, wait: int = 0, winH: float | None = None):
+    g = engine.new_game(seed=seed, hz=hz, winH=winH)
     turns = clears = 0
     t0 = time.time()
     while not g.state.is_over and turns < max_turns:
@@ -109,6 +110,8 @@ def main():
     p.add_argument("--wait", type=int, default=0,
                    help="extra frames to wait after the drop cooldown (36 frames at 60Hz) before the next drop")
     p.add_argument("--seed", type=int, default=0, help="first game seed")
+    p.add_argument("--winh", type=float, default=None, help="engine2: page window height (default 1262.5)")
+    p.add_argument("--gain", type=float, default=0.0, help="mc: points per real point gained in the look-ahead (+100 per watermelon made)")
     p.add_argument("--max-turns", type=int, default=100000)
     p.add_argument("--out", default=None, help="append per-game results (jsonl)")
     args = p.parse_args()
@@ -126,7 +129,7 @@ def main():
                 except queue.Empty:
                     return
                 agent = make_agent(args, eng.info["radius"], seed)
-                r = play(eng, agent, seed, args.hz, args.max_turns, args.wait)
+                r = play(eng, agent, seed, args.hz, args.max_turns, args.wait, args.winh)
                 r["agent"] = agent.name
                 with lock:
                     results.append(r)
