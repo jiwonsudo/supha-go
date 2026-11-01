@@ -263,7 +263,8 @@ class SuikaGame2 {
     this._newFruit(this.current, x, this.dropY, DROP_SPEED, 1);
     this._spawnNext();
     this.canDrop = false;
-    this.waitFrames = this.f(1.0);
+    // 0.5 s scheduleOnce + 0.5 s scale-in tween; measured on the page: 64 frames at 60 Hz
+    this.waitFrames = Math.round(64 * this.hz / 60);
     return true;
   }
 

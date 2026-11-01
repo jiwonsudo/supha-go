@@ -54,13 +54,20 @@
     return { errs, miss: miss + (B.length - used.size) };
   };
 
-  const PC = window.PC = { moves: [] };
+  const PC = window.PC = { moves: [], bad: [], settle: false };
   PC.run = (count, seed = 1) => {
     let r = seed;
     const rand = () => ((r = (r * 1103515245 + 12345) >>> 0) / 4294967296);
     for (let m = 0; m < count; m++) {
       let guard = 0;
       while ((!gf.targetFruit) && guard++ < 600) step();
+      // settle: wait (no time limit in this game) until no fruit is growing or merging and
+      // nothing moves faster than 0.5 px/frame
+      if (PC.settle) {
+        let w = 0;
+        const calm = () => { const fs = read(); return settled(fs) && fs.every((f) => Math.hypot(f.vx, f.vy) * PTM / 60 < 0.5); };
+        while (!calm() && w++ < 600) step();
+      }
       if (!gf.targetFruit) { PC.moves.push({ end: true }); break; }
       const before = read();
       const cur = gf.targetFruit.getComponent('fruitData').fruitNumber;
@@ -82,6 +89,7 @@
       const after = read();
       const pred = g.snapshot().fruits;
       const mm = match(after, pred);
+      if (after.length !== pred.length) PC.bad.push({ before, xBox, cur, frames, winH, after: after.map((f) => [f.type, +(f.x * PTM).toFixed(1), +(f.y * PTM).toFixed(1)]), pred: pred.map((f) => [f.type, +(f.x * PTM).toFixed(1), +(f.y * PTM).toFixed(1)]) });
       PC.moves.push({ m, xBox, cur, frames, wasSettled: settled(before), nBefore: before.length, nAfter: after.length, nPred: pred.length,
         maxErr: Math.max(0, ...mm.errs), medErr: mm.errs.sort((a, b) => a - b)[mm.errs.length >> 1] || 0, miss: mm.miss, winH });
     }
