@@ -98,12 +98,22 @@
 
   function finish() {
     // let the page run normally: end() adds the end bonus with real-time timeouts, then shows the result
+    // what the board looked like at game over, and whether the engine saw it coming
+    const fsOver = read();
+    const endInfo = { bonus: fsOver.reduce((t, f) => t + f.type + 1, 0), board: fsOver.map((f) => [f.type, +(f.x * PTM).toFixed(1), +(f.y * PTM).toFixed(1), f.inBox ? 1 : 0, f.touched ? 1 : 0]),
+      lastLog: AP.log.slice(-5), lineY: cc.find('Canvas/lineNode') && cc.find('Canvas/lineNode').y };
+    if (AP.pending) {
+      const pr = AP.pending; const sim = pr.g; const n = frames - pr.f0;
+      for (let k = 0; k < n + 240 && !sim.isOver; k++) sim.stepFrame();
+      endInfo.forecast = { framesReal: n, simOver: sim.isOver, simFrame: sim.frame, simFruits: sim.fruits.length };
+    }
+    AP.endInfo = endInfo;
     release();
     const startScore = PI.score;
     setTimeout(() => {
       const shown = document.getElementById('ThisGameScoreResult');
       AP.games.push({ end: new Date().toISOString(), moves: AP.moves, scoreAtOver: startScore, final: PI.score,
-        display: shown ? +(shown.textContent || '').trim() || null : null, winH: cc.winSize.height, opts: AP.opts, resumed: AP.resumed || 0 });
+        display: shown ? +(shown.textContent || '').trim() || null : null, winH: cc.winSize.height, opts: AP.opts, resumed: AP.resumed || 0, endInfo });
       try { localStorage.setItem('AP.games', JSON.stringify(AP.games)); } catch (e) { /* storage may be blocked */ }
       AP.running = false;
     }, 15000);
