@@ -119,15 +119,19 @@
     AP.started = new Date().toISOString();
     hold();
     cc.director.calculateDeltaTime = fixedDt;
+    // setTimeout is throttled in a hidden page (down to once a minute), so the next move is
+    // scheduled through a MessageChannel, which is not throttled.
+    const mc = new MessageChannel();
+    const next = (fn) => { mc.port1.onmessage = fn; mc.port2.postMessage(0); };
     const loop = () => {
       if (!AP.running) return;
       if (!cc.game.isPaused()) { AP.resumed = (AP.resumed || 0) + 1; cc.game.pause(); }
       let ok = true;
       try { ok = move(); } catch (e) { AP.error = String(e && e.stack); ok = false; }
-      if (ok && !over()) setTimeout(loop, 0);
+      if (ok && !over()) next(loop);
       else finish();
     };
-    setTimeout(loop, 0);
+    next(loop);
     return 'started';
   };
   AP.stop = () => { AP.running = false; release(); return 'stopped'; };
