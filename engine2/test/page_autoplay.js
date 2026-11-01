@@ -92,7 +92,7 @@
     AP.log.push({ m: AP.moves, cur, x: +c.x.toFixed(1), best: c.best, ms: Math.round(performance.now() - t0), score: PI.score });
     // whole-game record (evidence): move, current, next, drop x (canvas px), score before, fruits on the board
     const tc = new Array(11).fill(0); for (const f of fs) tc[f.type]++;
-    AP.record.push([AP.moves, cur, g.next, +c.x.toFixed(1), PI.score, fs.length, tc.join('')]);
+    AP.record.push([AP.moves, cur, g.next, +c.x.toFixed(1), PI.score, fs.length, tc.join(',')]);
     AP.lastBoard = fs.map((f) => [f.type, +(f.x * PTM).toFixed(1), +(f.y * PTM).toFixed(1)]);
     if (AP.log.length > 50) AP.log.shift();
     return true;
