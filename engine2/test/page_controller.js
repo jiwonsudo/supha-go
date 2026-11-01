@@ -53,7 +53,7 @@
     w.eval(code);
     w.AP.start();
     while (w.AP.running) { await sleep(3000); C.moves = w.AP.moves; }
-    const g = { ...w.AP.games[w.AP.games.length - 1], started: w.AP.started, error: w.AP.error || null, record: w.AP.record };
+    const g = { ...w.AP.games[w.AP.games.length - 1], started: w.AP.started, error: w.AP.error || null, record: w.AP.record, diag: w.AP.diag };
     C.games.push(g);
     save();
     return g;
