@@ -50,7 +50,7 @@
   let r = (Date.now() >>> 0) || 1;
   const rng = () => ((r = (Math.imul(r, 1103515245) + 12345) >>> 0) / 4294967296);
 
-  const AP = window.AP = { games: [], moves: 0, running: false, opts: { n: 50, chain: 2, inv: 0.6 }, log: [] };
+  const AP = window.AP = { games: [], moves: 0, running: false, opts: { n: 50, chain: 2, inv: 0.6 }, log: [], record: [] };
   AP.status = () => ({ running: AP.running, moves: AP.moves, score: PI.score, over: over(), games: AP.games });
 
   function move() {
@@ -74,6 +74,8 @@
     ic().onTouchEnd({});
     AP.moves++;
     AP.log.push({ m: AP.moves, cur, x: +c.x.toFixed(1), best: c.best, ms: Math.round(performance.now() - t0), score: PI.score });
+    // whole-game record (evidence): move, current, next, drop x (canvas px), score before, fruits on the board
+    AP.record.push([AP.moves, cur, g.next, +c.x.toFixed(1), PI.score, fs.length]);
     if (AP.log.length > 50) AP.log.shift();
     return true;
   }
@@ -84,7 +86,9 @@
     cc.game.resume();
     const startScore = PI.score;
     setTimeout(() => {
-      AP.games.push({ end: new Date().toISOString(), moves: AP.moves, scoreAtOver: startScore, final: PI.score });
+      const shown = document.getElementById('ThisGameScoreResult');
+      AP.games.push({ end: new Date().toISOString(), moves: AP.moves, scoreAtOver: startScore, final: PI.score,
+        display: shown ? +(shown.textContent || '').trim() || null : null, winH: cc.winSize.height, opts: AP.opts });
       try { localStorage.setItem('AP.games', JSON.stringify(AP.games)); } catch (e) { /* storage may be blocked */ }
       AP.running = false;
     }, 15000);
@@ -94,6 +98,8 @@
     if (AP.running) return 'already running';
     AP.running = true;
     AP.moves = 0;
+    AP.record = [];
+    AP.started = new Date().toISOString();
     cc.game.pause();
     cc.director.calculateDeltaTime = fixedDt;
     const loop = () => {
