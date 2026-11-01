@@ -50,7 +50,7 @@
   let r = (Date.now() >>> 0) || 1;
   const rng = () => ((r = (Math.imul(r, 1103515245) + 12345) >>> 0) / 4294967296);
 
-  const AP = window.AP = { games: [], moves: 0, running: false, opts: { n: 50, chain: 1, inv: 0.3 }, log: [] };
+  const AP = window.AP = { games: [], moves: 0, running: false, opts: { n: 50, chain: 2, inv: 0.6 }, log: [] };
   AP.status = () => ({ running: AP.running, moves: AP.moves, score: PI.score, over: over(), games: AP.games });
 
   function move() {
