@@ -13,7 +13,7 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let saved = [];
   try { saved = JSON.parse(localStorage.getItem('ctrl.games') || '[]'); } catch (e) { saved = []; }
-  const C = window.CTRL = { games: saved, running: false, phase: 'idle', target: null, error: null };
+  const C = window.CTRL = { games: saved, running: false, phase: 'idle', target: null, error: null, mute: true };
   const save = () => { try { localStorage.setItem('ctrl.games', JSON.stringify(C.games)); } catch (e) { /* full or blocked */ } };
   const frame = () => document.querySelector('#game_frame');
 
@@ -44,6 +44,12 @@
     const w = f.contentWindow;
     if (!(await ready(w))) { C.error = 'game did not load (is the Browser pane visible?)'; return null; }
     C.phase = 'playing';
+    if (C.mute) {
+      // no sound: the game plays clips through cc.audioEngine.play(clip, loop, volume)
+      const ae = w.cc.audioEngine;
+      ae.stopAll(); ae.setMusicVolume(0); ae.setEffectsVolume(0);
+      ae.play = () => -1; ae.playEffect = () => -1; ae.playMusic = () => -1;
+    }
     w.eval(code);
     w.AP.start();
     while (w.AP.running) { await sleep(3000); C.moves = w.AP.moves; }
